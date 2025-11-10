@@ -1,4 +1,5 @@
 ﻿using Terminal.Gui;
+using System.Collections.Generic; // We need this for List<string>
 
 namespace ErpConsoleApp;
 
@@ -7,34 +8,19 @@ class Program
     static int Main(string[] args)
     {
         Application.Init();
-
-        // We start by adding the Login Window
         Application.Top.Add(new LoginWindow());
-
-        // Run the application
         Application.Run();
         Application.Shutdown();
         return 0;
     }
 
-    /// <summary>
-    /// This is our simple "navigation" system.
-    /// It removes all windows and shows the main menu.
-    /// </summary>
     public static void ShowMenuPage()
     {
         Application.Top.RemoveAll();
-
-        // Add the top-level menu bar
         Application.Top.Add(new AppMenuBar());
-
-        // Add the main window
         Application.Top.Add(new MenuWindow());
     }
 
-    /// <summary>
-    /// Navigation method to go back to the login screen.
-    /// </summary>
     public static void ShowLoginPage()
     {
         Application.Top.RemoveAll();
@@ -43,7 +29,7 @@ class Program
 }
 
 /// <summary>
-/// The Login screen
+/// The Login screen (Same as before)
 /// </summary>
 class LoginWindow : Window
 {
@@ -51,58 +37,32 @@ class LoginWindow : Window
 
     public LoginWindow() : base("Login (Press Ctrl+Q to quit)")
     {
-        // Center the login box on the screen
         X = Pos.Center();
-        Y = Pos.Center() - 2; // Move it up a bit
+        Y = Pos.Center() - 2;
         Width = 40;
         Height = 10;
-
-        // 'Modal' means the user can't click anything else
         Modal = true;
 
-        var pinLabel = new Label("Enter 4-Digit PIN:")
-        {
-            X = 2,
-            Y = 2
-        };
+        var pinLabel = new Label("Enter 4-Digit PIN:") { X = 2, Y = 2 };
 
         pinField = new TextField("")
         {
             X = Pos.Right(pinLabel) + 1,
             Y = 2,
             Width = 10,
-            Secret = true // This makes it show '*' for the password
+            Secret = true
         };
-        // Set focus to the PIN field
         pinField.SetFocus();
 
         var loginButton = new Button("Login")
         {
             X = Pos.Center() - 10,
             Y = 6,
-            IsDefault = true, // Pressing Enter will click this button
-
-            // ✔️ CORRECT SYNTAX (using = inside the initializer)
-            /* We will move this outside
-            Clicked = () => {
-                // --- THIS IS OUR LOGIN LOGIC ---
-                if (pinField.Text.ToString() == "1234")
-                {
-                    Program.ShowMenuPage();
-                }
-                else
-                {
-                    MessageBox.ErrorQuery("Login Failed", "Incorrect PIN. Please try again.", "OK");
-                    pinField.Text = ""; 
-                }
-            }
-            */
+            IsDefault = true,
         };
 
-        // ✔️ NEW FIX: Assigning the event using +=
-        // This is the standard way and will resolve the error.
+        // We use += to add the event handler
         loginButton.Clicked += () => {
-            // --- THIS IS OUR LOGIN LOGIC ---
             if (pinField.Text.ToString() == "1234")
             {
                 Program.ShowMenuPage();
@@ -118,18 +78,11 @@ class LoginWindow : Window
         {
             X = Pos.Center() + 2,
             Y = 6,
-
-            // ✔️ CORRECT SYNTAX (using = inside the initializer)
-            /* We will move this outside
-            Clicked = () => {
-                Application.RequestStop(); // Stop the whole app
-            }
-            */
         };
 
-        // ✔️ NEW FIX: Assigning the event using +=
+        // We use += to add the event handler
         quitButton.Clicked += () => {
-            Application.RequestStop(); // Stop the whole app
+            Application.RequestStop();
         };
 
         Add(pinLabel, pinField, loginButton, quitButton);
@@ -137,29 +90,160 @@ class LoginWindow : Window
 }
 
 /// <summary>
-/// The main application window after logging in.
+/// The new main menu window with a two-pane layout
 /// </summary>
 class MenuWindow : Window
 {
+    private ListView moduleList;
+    private FrameView rightPane; // This pane will show sub-options
+
     public MenuWindow() : base("Main Menu")
     {
         X = 0;
-        Y = 1; // Start on row 1, because the MenuBar is on row 0
+        Y = 1; // Start below the MenuBar
         Width = Dim.Fill();
         Height = Dim.Fill();
 
-        var welcomeLabel = new Label("Login Successful! Welcome to the Main Menu.")
+        // --- Left Module List ---
+        var leftPane = new FrameView("Modules")
+        {
+            X = 0,
+            Y = 0,
+            Width = 30, // 30 characters wide
+            Height = Dim.Fill()
+        };
+
+        var modules = new List<string>() { "Inventory", "Salary", "Stop" };
+
+        moduleList = new ListView(modules)
+        {
+            X = 0,
+            Y = 0,
+            Width = Dim.Fill() - 1, // Fill the frame
+            Height = Dim.Fill(),
+            AllowsMarking = false,
+            CanFocus = true
+        };
+
+        // This event triggers when you select a module
+        moduleList.SelectedItemChanged += OnModuleSelected;
+
+        leftPane.Add(moduleList);
+
+        // --- Right Pane for Sub-Options ---
+        rightPane = new FrameView("Options")
+        {
+            X = 30, // Position it next to the left pane
+            Y = 0,
+            Width = Dim.Fill(),
+            Height = Dim.Fill()
+        };
+
+        // Add a welcome message to the right pane
+        var welcomeLabel = new Label("Please select a module from the left.")
         {
             X = Pos.Center(),
             Y = Pos.Center()
         };
+        rightPane.Add(welcomeLabel);
 
-        Add(welcomeLabel);
+
+        // Add the panes to the main window
+        Add(leftPane, rightPane);
+
+        // Set initial focus on the module list
+        moduleList.SetFocus();
+    }
+
+    /// <summary>
+    /// This method is called when a module is selected
+    /// </summary>
+    private void OnModuleSelected(ListViewItemEventArgs args)
+    {
+        // Clear all old controls from the right pane
+        rightPane.RemoveAll();
+
+        string selectedModule = args.Value.ToString();
+
+        // Set the title of the right pane
+        rightPane.Title = $"{selectedModule} Options";
+
+        if (selectedModule == "Inventory")
+        {
+            // --- INVENTORY SUB-MENU ---
+            var inventoryOptions = new ListView(new List<string> { "View Stock", "Add New Item", "Process Sale", "Receive Stock" })
+            {
+                X = 0,
+                Y = 0,
+                Width = Dim.Fill() - 1,
+                Height = Dim.Fill()
+            };
+
+            // We can add events to these sub-options later
+            inventoryOptions.SelectedItemChanged += (e) => {
+                if (e.Value.ToString() == "Add New Item")
+                {
+                    // This is where we'll show the "Add New Item" window
+                    // For now, just a message
+                    MessageBox.Query("Inventory", "Add New Item screen will open here.", "OK");
+                }
+            };
+
+            rightPane.Add(inventoryOptions);
+        }
+        else if (selectedModule == "Salary")
+        {
+            // --- SALARY SUB-MENU ---
+            var salaryOptions = new ListView(new List<string> { "Run Payroll", "View Employees", "Add New Employee", "View Payslips" })
+            {
+                X = 0,
+                Y = 0,
+                Width = Dim.Fill() - 1,
+                Height = Dim.Fill()
+            };
+            rightPane.Add(salaryOptions);
+        }
+        else if (selectedModule == "Stop")
+        {
+            // --- STOP (Logout Confirmation) ---
+
+            // Show a Yes/No confirmation box
+            // MessageBox.Query returns 0 if the first button ("Yes") is clicked, 1 for "No".
+            int selectedButton = MessageBox.Query(
+                "Logout",
+                "Are you sure you want to logout?",
+                "Yes", "No");
+
+            if (selectedButton == 0) // User clicked "Yes"
+            {
+                Program.ShowLoginPage();
+            }
+            else
+            {
+                // User clicked "No", let's clear the right pane
+                // and select the first item in the list so they can
+                // continue working.
+                rightPane.RemoveAll();
+                var welcomeLabel = new Label("Please select a module from the left.")
+                {
+                    X = Pos.Center(),
+                    Y = Pos.Center()
+                };
+                rightPane.Add(welcomeLabel);
+
+                // Reselect the first item
+                moduleList.SelectedItem = 0;
+                moduleList.SetFocus();
+            }
+        }
+
+        // Refresh the right pane to show the new controls
+        rightPane.LayoutSubviews();
     }
 }
 
 /// <summary>
-/// This is the top-level Menu Bar, like in your photo.
+/// This is the top-level Menu Bar, now with actions
 /// </summary>
 class AppMenuBar : MenuBar
 {
@@ -172,12 +256,16 @@ class AppMenuBar : MenuBar
                 new MenuItem("_Quit", "", () => Application.RequestStop(), null, null, Key.Q | Key.CtrlMask)
             }),
             new MenuBarItem("_Inventory", new MenuItem[] {
-                new MenuItem("_View Stock", "", null),
-                new MenuItem("_Add New Item", "", null)
+                new MenuItem("_View Stock", "", () => MessageBox.Query("Inventory", "View Stock screen opens here.", "OK")),
+                new MenuItem("_Add New Item", "", () => {
+                    // This is how we'll open new "pop-up" windows
+                    // We'll build this 'AddNewItemWindow' class next
+                    MessageBox.Query("Inventory", "Add New Item window opens here.", "OK");
+                })
             }),
             new MenuBarItem("_Salary", new MenuItem[] {
-                new MenuItem("_Run Payroll", "", null),
-                new MenuItem("_View Employees", "", null)
+                new MenuItem("_Run Payroll", "", () => MessageBox.Query("Salary", "Run Payroll screen opens here.", "OK")),
+                new MenuItem("_View Employees", "", () => MessageBox.Query("Salary", "View Employees screen opens here.", "OK"))
             })
         };
     }
