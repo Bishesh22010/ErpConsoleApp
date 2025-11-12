@@ -1,7 +1,6 @@
 ﻿using Terminal.Gui;
 using System.Collections.Generic;
 using System.Linq;
-// --- NEW DATABASE USINGS ---
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations; // For [Key]
 using System; // For DateTime
