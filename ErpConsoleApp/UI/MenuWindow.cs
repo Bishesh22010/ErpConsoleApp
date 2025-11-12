@@ -15,12 +15,12 @@ namespace ErpConsoleApp.UI
 
         // Lists of options for the right-hand pane
         private List<string> inventoryOptions = new List<string> {
+            "Add & Delete Party",
             "Purchase",
             "Payment",
             "Monthly Report",
             "PartyWise Report",
             "Item Wise Report",
-            "Add & Delete Party",
             "Item Add and Delete",
             "Balance Sheet"
         };
@@ -137,6 +137,12 @@ namespace ErpConsoleApp.UI
                 // Open the Purchase window as a modal dialog
                 Program.OpenModal(new PurchaseWindow());
             }
+            // --- ADDED THIS BLOCK ---
+            else if (selectedOption == "Add & Delete Party")
+            {
+                Program.OpenModal(new AddPartyWindow());
+            }
+            // --- END OF ADDED BLOCK ---
             else
             {
                 Program.ShowMessage("Not Implemented", $"The action '{selectedOption}' is not yet implemented.");

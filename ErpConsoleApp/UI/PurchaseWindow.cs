@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Terminal.Gui;
-using ErpConsoleApp.Database;
+using ErpConsoleApp.Database; // <-- THIS IS THE REQUIRED LINE
 using ErpConsoleApp.Database.Models;
 
 namespace ErpConsoleApp.UI
@@ -129,11 +129,11 @@ namespace ErpConsoleApp.UI
                 }
             }
 
-            // Add a default entry for testing if the list is empty
-            if (partyNames.Count == 0)
-            {
-                partyNames.Add("XYZ Party");
-            }
+            // REMOVED: This was a confusing test entry.
+            // if (partyNames.Count == 0)
+            // {
+            //     partyNames.Add("XYZ Party");
+            // }
         }
 
         /// <summary>
@@ -142,12 +142,16 @@ namespace ErpConsoleApp.UI
         private void OnGenerateSlip()
         {
             // --- 1. Validation ---
-            string partyName = partyCombo.Text.ToString();
-            string itemName = itemField.Text.ToString();
+
+            // --- FIXED: Make reads from text fields "null-safe" ---
+            // Use ?.ToString() ?? "" to safely get the text or an empty string.
+            string partyName = partyCombo.Text?.ToString() ?? "";
+            string itemName = itemField.Text?.ToString() ?? "";
+            string amountText = amountField.Text?.ToString() ?? "";
 
             if (string.IsNullOrWhiteSpace(partyName) ||
                 string.IsNullOrWhiteSpace(itemName) ||
-                !decimal.TryParse(amountField.Text.ToString(), out decimal amount) ||
+                !decimal.TryParse(amountText, out decimal amount) ||
                 amount <= 0)
             {
                 Program.ShowError("Validation Error", "Party, Item, and a valid Amount are required.");
@@ -166,15 +170,17 @@ namespace ErpConsoleApp.UI
                 // Use a fresh DbContext for this "transaction"
                 using (var db = new AppDbContext())
                 {
-                    // Find or create the party
+                    // --- MODIFIED LOGIC ---
+                    // Find the party. DO NOT create it.
                     Party party = db.Parties.FirstOrDefault(p => p.Name == partyName);
+
                     if (party == null)
                     {
-                        // Party doesn't exist, create it
-                        party = new Party { Name = partyName };
-                        db.Parties.Add(party);
-                        // We must save here so the 'party' object gets an ID
-                        db.SaveChanges();
+                        // Party doesn't exist, show an error.
+                        Program.ShowError("Party Not Found",
+                            $"Party '{partyName}' does not exist.\n\n" +
+                            "Please add it first using the 'Add & Delete Party' option.");
+                        return; // Stop execution
                     }
 
                     // Create the purchase slip
@@ -188,7 +194,7 @@ namespace ErpConsoleApp.UI
 
                     db.PurchaseSlips.Add(slip);
 
-                    // Save all changes (slip and new party if any)
+                    // Save all changes (slip only)
                     db.SaveChanges();
                 }
 
@@ -196,11 +202,8 @@ namespace ErpConsoleApp.UI
                 Program.ShowMessage("Success", $"Purchase Slip generated for {partyName}\nAmount: {amount:C}");
 
                 // Update the ComboBox list in case we added a new party
-                if (!partyNames.Contains(partyName))
-                {
-                    partyNames.Add(partyName);
-                    partyCombo.SetSource(partyNames);
-                }
+                // --- REMOVED THIS LOGIC ---
+                // (We no longer add parties from this screen)
 
                 // Clear form for next entry (but keep date and party)
                 itemField.Text = "";
@@ -209,7 +212,10 @@ namespace ErpConsoleApp.UI
             }
             catch (Exception e)
             {
-                Program.ShowError("Database Error", $"Could not save slip:\n{e.Message}");
+                // --- MODIFIED ERROR MESSAGE ---
+                string error = $"Could not save slip:\n{e.Message}\n\n" +
+                               "Tip: Is 'erp.db' locked by another program (like DB Browser)?";
+                Program.ShowError("Database Error", error);
             }
         }
     }

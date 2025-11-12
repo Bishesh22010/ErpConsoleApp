@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
 using Terminal.Gui;
-using ErpConsoleApp.Database; // Import database classes
+using ErpConsoleApp.Database; // <-- THIS IS THE REQUIRED LINE
 using ErpConsoleApp.UI;     // Import UI classes
 
 namespace ErpConsoleApp
@@ -75,17 +75,24 @@ namespace ErpConsoleApp
         /// </summary>
         public static void ShowError(string title, string message)
         {
-            var dialog = new Dialog(title, 60, 10)
+            var dialog = new Dialog(title, 60, 15) // <-- FIXED: Height increased from 10 to 15
             {
                 ColorScheme = Colors.ErrorScheme
             };
 
-            var msgLabel = new Label(message) { X = 2, Y = 2, TextAlignment = TextAlignment.Centered };
+            var msgLabel = new Label(message)
+            {
+                X = 2,
+                Y = 2,
+                TextAlignment = TextAlignment.Centered,
+                Width = Dim.Fill(2),  // <-- ADDED: Allow wrapping
+                Height = Dim.Fill(2) // <-- ADDED: Allow wrapping
+            };
 
             var okButton = new Button("_OK")
             {
                 X = Pos.Center(),
-                Y = Pos.Bottom(dialog) - 5,
+                Y = Pos.Bottom(dialog) - 3, // <-- FIXED: Adjusted Y position
                 IsDefault = true,
                 ColorScheme = Colors.ButtonScheme
             };
@@ -101,17 +108,24 @@ namespace ErpConsoleApp
         /// </summary>
         public static void ShowMessage(string title, string message)
         {
-            var dialog = new Dialog(title, 60, 10)
+            var dialog = new Dialog(title, 60, 15) // <-- FIXED: Height increased from 10 to 15
             {
                 ColorScheme = Colors.DialogScheme
             };
 
-            var msgLabel = new Label(message) { X = 2, Y = 2, TextAlignment = TextAlignment.Centered };
+            var msgLabel = new Label(message)
+            {
+                X = 2,
+                Y = 2,
+                TextAlignment = TextAlignment.Centered,
+                Width = Dim.Fill(2),  // <-- ADDED: Allow wrapping
+                Height = Dim.Fill(2) // <-- ADDED: Allow wrapping
+            };
 
             var okButton = new Button("_OK")
             {
                 X = Pos.Center(),
-                Y = Pos.Bottom(dialog) - 5,
+                Y = Pos.Bottom(dialog) - 3, // <-- FIXED: Adjusted Y position
                 IsDefault = true,
                 ColorScheme = Colors.ButtonScheme
             };
@@ -139,7 +153,7 @@ namespace ErpConsoleApp
             var yesButton = new Button("_Yes") // 'Y' is the hotkey
             {
                 X = Pos.Center() - 10,
-                Y = Pos.Bottom(dialog) - 5,
+                Y = 6, // <-- FIXED: Was Pos.Bottom(dialog) - 5
                 IsDefault = true,
                 ColorScheme = Colors.ButtonScheme
             };
@@ -151,7 +165,7 @@ namespace ErpConsoleApp
             var noButton = new Button("_No") // 'N' is the hotkey
             {
                 X = Pos.Center() + 5,
-                Y = Pos.Bottom(dialog) - 5,
+                Y = 6, // <-- FIXED: Was Pos.Bottom(dialog) - 5
                 ColorScheme = Colors.ButtonScheme
             };
             noButton.Clicked += () => {

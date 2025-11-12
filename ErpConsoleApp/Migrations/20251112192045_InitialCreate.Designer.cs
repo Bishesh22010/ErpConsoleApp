@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ErpConsoleApp.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251112183632_SecondMigration")]
-    partial class SecondMigration
+    [Migration("20251112192045_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

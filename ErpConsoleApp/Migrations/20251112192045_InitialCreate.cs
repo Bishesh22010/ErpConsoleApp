@@ -3,8 +3,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
-
 namespace ErpConsoleApp.Migrations
 {
     /// <inheritdoc />
@@ -19,7 +17,7 @@ namespace ErpConsoleApp.Migrations
                 {
                     PartyId = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false)
+                    Name = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -32,8 +30,8 @@ namespace ErpConsoleApp.Migrations
                 {
                     PurchaseSlipId = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    Date = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    ItemName = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    SlipDate = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    ItemName = table.Column<string>(type: "TEXT", nullable: false),
                     Amount = table.Column<decimal>(type: "TEXT", nullable: false),
                     PartyId = table.Column<int>(type: "INTEGER", nullable: false)
                 },
@@ -46,16 +44,6 @@ namespace ErpConsoleApp.Migrations
                         principalTable: "Parties",
                         principalColumn: "PartyId",
                         onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.InsertData(
-                table: "Parties",
-                columns: new[] { "PartyId", "Name" },
-                values: new object[,]
-                {
-                    { 1, "XYZ Party" },
-                    { 2, "Main Supplier Inc." },
-                    { 3, "Local Hardware" }
                 });
 
             migrationBuilder.CreateIndex(

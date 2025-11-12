@@ -14,7 +14,9 @@ namespace ErpConsoleApp.Database
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             // This creates a file named "erp.db" in the same folder as the .exe
-            optionsBuilder.UseSqlite("Data Source=erp.db");
+            // --- MODIFIED LINE ---
+            // Go up 3 directories (from bin/Debug/net8.0) to the project root
+            optionsBuilder.UseSqlite("Data Source=../../../erp.db");
         }
     }
 }
