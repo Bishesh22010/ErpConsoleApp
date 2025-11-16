@@ -112,15 +112,15 @@ namespace ErpConsoleApp.UI
             {
                 // Ask for logout confirmation
                 if (Program.ShowQuery("Logout", "Are you sure you want to logout?"))
-                {
-                    Program.ShowLoginPage();
-                }
-                else
-                {
-                    // Reset selection if they click "No"
+                { // Reset selection if they click "No"
                     optionsFrame.Title = "Options";
                     optionsList.SetSource(new List<string>());
                     moduleList.SelectedItem = 0; // Go back to "Inventory"
+                    
+                }
+                else
+                {
+                    Program.ShowLoginPage();
                 }
             }
         }
@@ -143,6 +143,10 @@ namespace ErpConsoleApp.UI
                 Program.OpenModal(new AddPartyWindow());
             }
             // --- END OF ADDED BLOCK ---
+            else if(selectedOption == "Payment")
+            {
+                Program.OpenModal(new PaymentWindow());
+            }
             else
             {
                 Program.ShowMessage("Not Implemented", $"The action '{selectedOption}' is not yet implemented.");

@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ErpConsoleApp.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251112192045_InitialCreate")]
+    [Migration("20251116181240_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -43,6 +43,9 @@ namespace ErpConsoleApp.Migrations
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsPaid")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("ItemName")
                         .IsRequired()

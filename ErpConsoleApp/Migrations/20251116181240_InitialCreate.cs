@@ -33,6 +33,7 @@ namespace ErpConsoleApp.Migrations
                     SlipDate = table.Column<DateTime>(type: "TEXT", nullable: false),
                     ItemName = table.Column<string>(type: "TEXT", nullable: false),
                     Amount = table.Column<decimal>(type: "TEXT", nullable: false),
+                    IsPaid = table.Column<bool>(type: "INTEGER", nullable: false),
                     PartyId = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>

@@ -41,6 +41,9 @@ namespace ErpConsoleApp.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsPaid")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("ItemName")
                         .IsRequired()
                         .HasColumnType("TEXT");

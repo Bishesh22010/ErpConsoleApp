@@ -199,7 +199,8 @@ namespace ErpConsoleApp.UI
                 }
 
                 // --- 3. Success ---
-                Program.ShowMessage("Success", $"Purchase Slip generated for {partyName}\nAmount: {amount:C}");
+                Program.ShowMessage("Success", $"Purchase Slip generated for {partyName}\nAmount: ₹{amount:N2}\n\nPress Enter to continue...");
+
 
                 // Update the ComboBox list in case we added a new party
                 // --- REMOVED THIS LOGIC ---

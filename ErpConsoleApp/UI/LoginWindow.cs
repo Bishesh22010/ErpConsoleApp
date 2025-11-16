@@ -53,7 +53,7 @@ namespace ErpConsoleApp.UI
                 else
                 {
                     // Incorrect PIN
-                    Program.ShowError("Login Failed", "Incorrect PIN. Please try again.");
+                    Program.ShowError("Login Failed", "Incorrect PIN. Please try again.\nPress Enter to try Again");
                     pinField.Text = ""; // Clear the text field
                 }
             };
