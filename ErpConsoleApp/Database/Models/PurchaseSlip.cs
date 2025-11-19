@@ -14,7 +14,12 @@ namespace ErpConsoleApp.Database.Models
         [Required]
         public string ItemName { get; set; }
         public decimal Amount { get; set; }
+
+        // Tracks if the slip is fully cleared
         public bool IsPaid { get; set; } = false;
+
+        // --- NEW FIELD: Tracks partial payments ---
+        public decimal PaidAmount { get; set; } = 0;
 
         // Foreign Key relationship
         public int PartyId { get; set; }

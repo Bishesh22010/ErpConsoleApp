@@ -140,7 +140,7 @@ namespace ErpConsoleApp.UI
             // --- ADDED THIS BLOCK ---
             else if (selectedOption == "Add & Delete Party")
             {
-                Program.OpenModal(new AddPartyWindow());
+                Program.OpenModal(new ManagePartiesWindow());
             }
             // --- END OF ADDED BLOCK ---
             else if(selectedOption == "Payment")
