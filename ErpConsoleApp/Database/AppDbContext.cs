@@ -13,6 +13,8 @@ namespace ErpConsoleApp.Database
 
         public DbSet<Item> Items { get; set; }
         public DbSet<Employee> Employees { get; set; }
+        public DbSet<SalaryRecord> Salaries { get; set; }
+
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

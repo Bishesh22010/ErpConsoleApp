@@ -31,7 +31,7 @@ namespace ErpConsoleApp.UI
                 }),
                 new MenuBarItem("_Salary", new MenuItem[] {
                     new MenuItem("_Manage Employee", "",() => Program.OpenModal(new ManageEmployeeWindow())),
-                    new MenuItem("_Salary", "", null),
+                    new MenuItem("_Salary", "",() => Program.OpenModal(new SalaryWindow())),
                     new MenuItem("_Voucher", "", null),
                     new MenuItem("_Reports", "", null),
                     new MenuItem("_Settings", "", null)

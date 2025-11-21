@@ -166,9 +166,13 @@ namespace ErpConsoleApp.UI
             {
                 Program.OpenModal(new PartyWiseReportWindow());
             }
-            if (selectedOption == "Manage Employee")
+            else if (selectedOption == "Manage Employee")
             {
                 Program.OpenModal(new ManageEmployeeWindow());
+            }
+            else if (selectedOption == "Salary")
+            {
+                Program.OpenModal(new SalaryWindow());
             }
             else
             {

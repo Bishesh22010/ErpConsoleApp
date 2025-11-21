@@ -13,15 +13,10 @@ namespace ErpConsoleApp
         // This is our base scheme (e.g., for the app background)
         public static ColorScheme BaseScheme { get; } = new ColorScheme()
         {
-            // Color for regular text
             Normal = Make(Color.White, Color.Black),
-            // Color for the focused view (e.g., a selected list item)
             Focus = Make(Color.Black, Color.White),
-            // Color for "hotkey" text (e.g., the 'F' in _File)
             HotNormal = Make(Color.White, Color.Black),
-            // Color for a "hotkey" on a focused view
             HotFocus = Make(Color.Black, Color.White),
-            // Color for disabled controls
             Disabled = Make(Color.Gray, Color.Black)
         };
 
@@ -55,7 +50,6 @@ namespace ErpConsoleApp
             Disabled = Make(Color.Gray, Color.Black)
         };
 
-        // A scheme for error messages (Inverted to stand out)
         public static ColorScheme ErrorScheme { get; } = new ColorScheme()
         {
             Normal = Make(Color.Black, Color.White),
@@ -65,7 +59,6 @@ namespace ErpConsoleApp
             Disabled = Make(Color.Gray, Color.White)
         };
 
-        // Scheme for buttons (Inverted to look like buttons)
         public static ColorScheme ButtonScheme { get; } = new ColorScheme()
         {
             Normal = Make(Color.Black, Color.White),
@@ -75,14 +68,24 @@ namespace ErpConsoleApp
             Disabled = Make(Color.Gray, Color.Black)
         };
 
-        // Scheme for text entry fields
         public static ColorScheme TextScheme { get; } = new ColorScheme()
         {
             Normal = Make(Color.White, Color.Black),
-            Focus = Make(Color.Black, Color.White), // High contrast for focused text
+            Focus = Make(Color.Black, Color.White),
             HotNormal = Make(Color.White, Color.Black),
             HotFocus = Make(Color.Black, Color.White),
             Disabled = Make(Color.Gray, Color.Black)
         };
+
+        // --- NEW SCHEME FOR RESULTS / READ-ONLY FIELDS ---
+        public static ColorScheme ResultScheme { get; } = new ColorScheme()
+        {
+            // Bright Yellow text on Black background
+            Normal = Make(Color.BrightYellow, Color.Black),
+            Focus = Make(Color.Black, Color.BrightYellow),
+            HotNormal = Make(Color.BrightYellow, Color.Black),
+            HotFocus = Make(Color.Black, Color.BrightYellow),
+            Disabled = Make(Color.Red, Color.Black)
+        };
     }
-}   
+}
