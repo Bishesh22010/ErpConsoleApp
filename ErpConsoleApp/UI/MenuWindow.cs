@@ -151,6 +151,10 @@ namespace ErpConsoleApp.UI
             {
                 Program.OpenModal(new ManageItemsWindow());
             }
+            else if(selectedOption == "Monthly Report")
+            {
+                Program.OpenModal(new MonthlyReportWindow());
+            }
             else
             {
                 Program.ShowMessage("Not Implemented", $"The action '{selectedOption}' is not yet implemented.");
