@@ -16,12 +16,12 @@ namespace ErpConsoleApp.UI
         // Lists of options for the right-hand pane
         private List<string> inventoryOptions = new List<string> {
             "Add & Delete Party",
+            "Item Add and Delete",
             "Purchase",
             "Payment",
             "Monthly Report",
             "PartyWise Report",
             "Item Wise Report",
-            "Item Add and Delete",
             "Balance Sheet"
         };
 
@@ -146,6 +146,10 @@ namespace ErpConsoleApp.UI
             else if(selectedOption == "Payment")
             {
                 Program.OpenModal(new PaymentWindow());
+            }
+            else if(selectedOption == "Item Add and Delete")
+            {
+                Program.OpenModal(new ManageItemsWindow());
             }
             else
             {

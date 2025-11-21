@@ -11,6 +11,8 @@ namespace ErpConsoleApp.Database
         public DbSet<Party> Parties { get; set; }
         public DbSet<PurchaseSlip> PurchaseSlips { get; set; }
 
+        public DbSet<Item> Items { get; set; }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             // This creates a file named "erp.db" in the same folder as the .exe

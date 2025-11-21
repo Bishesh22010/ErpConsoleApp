@@ -9,16 +9,20 @@ namespace ErpConsoleApp.UI
 {
     /// <summary>
     /// Window for creating a new Purchase Slip.
-    /// Updated to be Full Screen with Center Alignment.
+    /// Updated to include Item Dropdown logic.
     /// </summary>
     public class PurchaseWindow : Window
     {
         private TextField dateField;
         private ComboBox partyCombo;
-        private TextField itemField;
+
+        // --- CHANGED: Use ComboBox for Items ---
+        private ComboBox itemCombo;
+
         private TextField amountField;
 
         private List<string> partyNames = new List<string>();
+        private List<string> itemNames = new List<string>();
 
         public PurchaseWindow() : base("New Purchase Slip (Press ESC to go back)")
         {
@@ -40,10 +44,9 @@ namespace ErpConsoleApp.UI
                 }
             };
 
-            LoadPartiesFromDb();
+            LoadDataFromDb();
 
             // --- CENTERED CONTAINER ---
-            // We create a view in the center to hold our form controls
             var container = new View()
             {
                 X = Pos.Center(),
@@ -74,7 +77,7 @@ namespace ErpConsoleApp.UI
                 X = 15,
                 Y = y,
                 Width = 35,
-                Height = 5, // Needs height for dropdown
+                Height = 5,
                 ColorScheme = Colors.TextScheme
             };
             partyCombo.SetSource(partyNames);
@@ -82,16 +85,18 @@ namespace ErpConsoleApp.UI
 
             y += 2;
 
-            // --- Item Name ---
+            // --- Item Name (ComboBox) ---
             container.Add(new Label("Item Name:") { X = 0, Y = y });
-            itemField = new TextField("")
+            itemCombo = new ComboBox()
             {
                 X = 15,
                 Y = y,
                 Width = 35,
+                Height = 5,
                 ColorScheme = Colors.TextScheme
             };
-            container.Add(itemField);
+            itemCombo.SetSource(itemNames);
+            container.Add(itemCombo);
 
             y += 2;
 
@@ -106,7 +111,7 @@ namespace ErpConsoleApp.UI
             };
             container.Add(amountField);
 
-            y += 4; // Add extra space before buttons
+            y += 4;
 
             // --- Buttons ---
             var generateButton = new Button("_Generate Slip")
@@ -127,26 +132,26 @@ namespace ErpConsoleApp.UI
             cancelButton.Clicked += () => Application.RequestStop();
 
             container.Add(generateButton, cancelButton);
-
-            // Add the centered container to the main window
             Add(container);
 
-            // Set initial focus
             dateField.SetFocus();
         }
 
-        private void LoadPartiesFromDb()
+        private void LoadDataFromDb()
         {
             using (var db = new AppDbContext())
             {
                 try
                 {
-                    partyNames = db.Parties.Select(p => p.Name).ToList();
+                    // Load Parties
+                    partyNames = db.Parties.OrderBy(p => p.Name).Select(p => p.Name).ToList();
+
+                    // --- NEW: Load Items ---
+                    itemNames = db.Items.OrderBy(i => i.ItemName).Select(i => i.ItemName).ToList();
                 }
                 catch (Exception e)
                 {
-                    Program.ShowError("DB Error", $"Could not load parties:\n{e.Message}");
-                    partyNames = new List<string>();
+                    Program.ShowError("DB Error", $"Could not load data:\n{e.Message}");
                 }
             }
         }
@@ -155,7 +160,7 @@ namespace ErpConsoleApp.UI
         {
             // --- 1. Validation ---
             string partyName = partyCombo.Text?.ToString() ?? "";
-            string itemName = itemField.Text?.ToString() ?? "";
+            string itemName = itemCombo.Text?.ToString() ?? ""; // Get from ComboBox
             string amountText = amountField.Text?.ToString() ?? "";
 
             if (string.IsNullOrWhiteSpace(partyName) ||
@@ -178,16 +183,22 @@ namespace ErpConsoleApp.UI
             {
                 using (var db = new AppDbContext())
                 {
-                    // Check if party exists
+                    // Check Party
                     Party party = db.Parties.FirstOrDefault(p => p.Name == partyName);
-
                     if (party == null)
                     {
-                        Program.ShowError("Party Not Found",
-                            $"Party '{partyName}' does not exist.\n\n" +
-                            "Please add it first using the 'Add & Delete Party' option.");
+                        Program.ShowError("Error", "Party not found. Please add it first.");
                         return;
                     }
+
+                    // Check Item (Optional strict check, or just allow text)
+                    // If you want to force the user to pick a valid item from DB:
+                    /*
+                    if (!db.Items.Any(i => i.ItemName == itemName)) {
+                        Program.ShowError("Error", "Item not found. Please add it in Item Manager.");
+                        return;
+                    }
+                    */
 
                     // Create the purchase slip
                     var slip = new PurchaseSlip
@@ -196,25 +207,25 @@ namespace ErpConsoleApp.UI
                         ItemName = itemName,
                         Amount = amount,
                         PartyId = party.PartyId,
-                        IsPaid = false // Default to not paid
+                        IsPaid = false,
+                        PaidAmount = 0
                     };
 
                     db.PurchaseSlips.Add(slip);
                     db.SaveChanges();
                 }
 
-                // --- 3. Success ---
-                Program.ShowMessage("Success", $"Purchase Slip generated for {partyName}\nAmount: ₹{amount:N2}\n\nPress Enter to continue...");
+                Program.ShowMessage("Success", $"Purchase Slip generated for {partyName}\nItem: {itemName}\nAmount: ₹{amount:N2}\n\nPress Enter to continue...");
 
                 // Clear form for next entry
-                itemField.Text = "";
+                itemCombo.Text = "";
                 amountField.Text = "";
-                itemField.SetFocus();
+                itemCombo.SetFocus();
             }
             catch (Exception e)
             {
                 string error = $"Could not save slip:\n{e.Message}\n\n" +
-                               "Tip: Is 'erp.db' locked by another program (like DB Browser)?";
+                               "Tip: Is 'erp.db' locked by another program?";
                 Program.ShowError("Database Error", error);
             }
         }
