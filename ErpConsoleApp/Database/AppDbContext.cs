@@ -12,6 +12,7 @@ namespace ErpConsoleApp.Database
         public DbSet<PurchaseSlip> PurchaseSlips { get; set; }
 
         public DbSet<Item> Items { get; set; }
+        public DbSet<Employee> Employees { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

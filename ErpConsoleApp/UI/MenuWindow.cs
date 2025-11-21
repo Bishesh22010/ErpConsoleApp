@@ -25,7 +25,14 @@ namespace ErpConsoleApp.UI
             "Balance Sheet"
         };
 
-        private List<string> salaryOptions = new List<string> { "Run Payroll", "View Employees" };
+        // --- UPDATED SALARY OPTIONS ---
+        private List<string> salaryOptions = new List<string> {
+            "Manage Employee",
+            "Salary",
+            "Voucher",
+            "Reports",
+            "Settings"
+        };
 
         public MenuWindow() : base("Main Menu")
         {
@@ -154,6 +161,14 @@ namespace ErpConsoleApp.UI
             else if(selectedOption == "Monthly Report")
             {
                 Program.OpenModal(new MonthlyReportWindow());
+            }
+            else if(selectedOption == "PartyWise Report")
+            {
+                Program.OpenModal(new PartyWiseReportWindow());
+            }
+            if (selectedOption == "Manage Employee")
+            {
+                Program.OpenModal(new ManageEmployeeWindow());
             }
             else
             {
