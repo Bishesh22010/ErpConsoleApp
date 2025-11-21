@@ -22,7 +22,7 @@ namespace ErpConsoleApp.UI
                     new MenuItem("_Purchase", "", () => Program.OpenModal(new PurchaseWindow())),
                     new MenuItem("_Payment", "", () => Program.OpenModal(new PaymentWindow())),
                     new MenuItem("_Item Add and Delete", "",() => Program.OpenModal(new PaymentWindow())),
-                    new MenuItem("_Monthly Report", "", () => Program.OpenModal(new MonthlyReportWindow()),
+                    new MenuItem("_Monthly Report", "", () => Program.OpenModal(new PaymentWindow())),
                     new MenuItem("_PartyWise Report", "", null),
                     new MenuItem("_Item Wise Report", "", null),
                     new MenuItem("_Add & Delete Party", "", null),

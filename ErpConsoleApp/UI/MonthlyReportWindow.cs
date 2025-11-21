@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics; // Needed for opening files
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -14,8 +15,10 @@ namespace ErpConsoleApp.UI
     {
         private DateField monthField;
         private ListView reportList;
+        private ListView recentFilesList; // List for recent files
         private Label summaryLabel;
         private List<PurchaseSlip> currentSlips = new List<PurchaseSlip>();
+        private List<FileInfo> recentFiles = new List<FileInfo>();
 
         public MonthlyReportWindow() : base("Monthly Report (Press ESC to go back)")
         {
@@ -38,7 +41,6 @@ namespace ErpConsoleApp.UI
 
             filterFrame.Add(new Label("Select Date:") { X = 2, Y = 1 });
 
-            // We use a DateField, but we'll only care about the Month and Year
             monthField = new DateField(DateTime.Now)
             {
                 X = 15,
@@ -58,13 +60,22 @@ namespace ErpConsoleApp.UI
 
             filterFrame.Add(monthField, btnLoad);
 
-            // --- Middle Pane: List ---
-            var listFrame = new FrameView("Operations")
+            // --- Middle Container ---
+            var middleContainer = new View()
             {
                 X = 0,
                 Y = 5,
                 Width = Dim.Fill(),
                 Height = Dim.Fill(4) // Leave room for footer
+            };
+
+            // --- Middle Left: Report Preview (70%) ---
+            var listFrame = new FrameView("Operations Preview")
+            {
+                X = 0,
+                Y = 0,
+                Width = Dim.Percent(70),
+                Height = Dim.Fill()
             };
 
             reportList = new ListView()
@@ -77,7 +88,30 @@ namespace ErpConsoleApp.UI
             };
             listFrame.Add(reportList);
 
-            // --- Footer: Summary & Exports ---
+            // --- Middle Right: Recent Files (30%) ---
+            var recentFrame = new FrameView("Recent Exports (Enter to Open)")
+            {
+                X = Pos.Right(listFrame),
+                Y = 0,
+                Width = Dim.Fill(),
+                Height = Dim.Fill()
+            };
+
+            recentFilesList = new ListView()
+            {
+                X = 0,
+                Y = 0,
+                Width = Dim.Fill(),
+                Height = Dim.Fill(),
+                ColorScheme = Colors.TextScheme
+            };
+            // Handle opening file on Enter
+            recentFilesList.OpenSelectedItem += (e) => OpenRecentFile();
+            recentFrame.Add(recentFilesList);
+
+            middleContainer.Add(listFrame, recentFrame);
+
+            // --- Footer: Actions ---
             var footerFrame = new FrameView("Actions")
             {
                 X = 0,
@@ -93,7 +127,7 @@ namespace ErpConsoleApp.UI
                 ColorScheme = Colors.WindowScheme
             };
 
-            var btnExportCsv = new Button("Export to _Excel (CSV)")
+            var btnExportCsv = new Button("Export to _Excel")
             {
                 X = 2,
                 Y = 1,
@@ -103,11 +137,19 @@ namespace ErpConsoleApp.UI
 
             var btnExportTxt = new Button("Export to _Text")
             {
-                X = 30,
+                X = 25,
                 Y = 1,
                 ColorScheme = Colors.ButtonScheme
             };
             btnExportTxt.Clicked += () => ExportData("txt");
+
+            var btnOpenRecent = new Button("Open _Recent File")
+            {
+                X = 48,
+                Y = 1,
+                ColorScheme = Colors.ButtonScheme
+            };
+            btnOpenRecent.Clicked += OpenRecentFile;
 
             var btnClose = new Button("_Back")
             {
@@ -117,12 +159,13 @@ namespace ErpConsoleApp.UI
             };
             btnClose.Clicked += () => Application.RequestStop();
 
-            footerFrame.Add(summaryLabel, btnExportCsv, btnExportTxt, btnClose);
+            footerFrame.Add(summaryLabel, btnExportCsv, btnExportTxt, btnOpenRecent, btnClose);
 
-            Add(filterFrame, listFrame, footerFrame);
+            Add(filterFrame, middleContainer, footerFrame);
 
-            // Load initially
+            // Load initial data
             LoadReport();
+            LoadRecentFiles();
         }
 
         private void LoadReport()
@@ -133,7 +176,6 @@ namespace ErpConsoleApp.UI
             {
                 using (var db = new AppDbContext())
                 {
-                    // Filter by Month and Year
                     currentSlips = db.PurchaseSlips
                         .Include(s => s.Party)
                         .Where(s => s.SlipDate.Month == selectedDate.Month &&
@@ -141,9 +183,8 @@ namespace ErpConsoleApp.UI
                         .OrderBy(s => s.SlipDate)
                         .ToList();
 
-                    // Update List View
                     var displayList = currentSlips.Select(s =>
-                        string.Format("{0:yyyy-MM-dd} | {1,-15} | {2,-15} | {3,10:N2} | {4}",
+                        string.Format("{0:yyyy-MM-dd} | {1,-15} | {2,-10} | {3,10:N2} | {4}",
                             s.SlipDate,
                             s.Party.Name,
                             s.ItemName,
@@ -151,10 +192,9 @@ namespace ErpConsoleApp.UI
                             s.IsPaid ? "CLEARED" : "PENDING")
                     ).ToList();
 
-                    if (displayList.Count == 0) displayList.Add("No records found for this month.");
+                    if (displayList.Count == 0) displayList.Add("No records found.");
                     reportList.SetSource(displayList);
 
-                    // Update Summary
                     decimal total = currentSlips.Sum(s => s.Amount);
                     summaryLabel.Text = $"Total: {total:C} | Records: {currentSlips.Count}";
                 }
@@ -162,6 +202,59 @@ namespace ErpConsoleApp.UI
             catch (Exception e)
             {
                 Program.ShowError("Database Error", e.Message);
+            }
+        }
+
+        private void LoadRecentFiles()
+        {
+            try
+            {
+                string appPath = AppDomain.CurrentDomain.BaseDirectory;
+                DirectoryInfo d = new DirectoryInfo(appPath);
+
+                // Find files starting with "Report_" and ending in .csv or .txt
+                recentFiles = d.GetFiles("Report_*.*")
+                               .Where(f => f.Extension.ToLower() == ".csv" || f.Extension.ToLower() == ".txt")
+                               .OrderByDescending(f => f.CreationTime) // Newest first
+                               .Take(5)
+                               .ToList();
+
+                // Update UI list
+                var fileNames = recentFiles.Select(f => f.Name).ToList();
+                if (fileNames.Count == 0) fileNames.Add("No reports found.");
+
+                recentFilesList.SetSource(fileNames);
+            }
+            catch (Exception e)
+            {
+                Program.ShowError("File Error", "Could not load recent files.");
+            }
+        }
+
+        private void OpenRecentFile()
+        {
+            if (recentFilesList.SelectedItem < 0 || recentFilesList.SelectedItem >= recentFiles.Count)
+            {
+                Program.ShowError("Error", "Please select a file from the list.");
+                return;
+            }
+
+            var file = recentFiles[recentFilesList.SelectedItem];
+
+            try
+            {
+                // Open file with default system application (Excel, Notepad, etc.)
+                new Process
+                {
+                    StartInfo = new ProcessStartInfo(file.FullName)
+                    {
+                        UseShellExecute = true
+                    }
+                }.Start();
+            }
+            catch (Exception e)
+            {
+                Program.ShowError("Open Error", $"Could not open file:\n{e.Message}");
             }
         }
 
@@ -182,7 +275,6 @@ namespace ErpConsoleApp.UI
 
                 if (format == "csv")
                 {
-                    // CSV Header
                     sb.AppendLine("Date,Party Name,Item Name,Amount,Status,Paid Amount");
                     foreach (var s in currentSlips)
                     {
@@ -206,7 +298,10 @@ namespace ErpConsoleApp.UI
                 }
 
                 File.WriteAllText(fullPath, sb.ToString());
-                Program.ShowMessage("Export Successful", $"File saved to:\n{fileName}\n\n(Check your app folder)");
+                Program.ShowMessage("Export Successful", $"File saved.");
+
+                // Refresh the recent files list immediately
+                LoadRecentFiles();
             }
             catch (Exception e)
             {
