@@ -174,6 +174,14 @@ namespace ErpConsoleApp.UI
             {
                 Program.OpenModal(new SalaryWindow());
             }
+            else if (selectedOption == "Voucher")
+            {
+                Program.OpenModal(new VoucherWindow());
+            }
+            else if(selectedOption == "Reports")
+            {
+                Program.OpenModal(new ReportsWindow());
+            }
             else
             {
                 Program.ShowMessage("Not Implemented", $"The action '{selectedOption}' is not yet implemented.");
