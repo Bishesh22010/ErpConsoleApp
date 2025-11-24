@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ErpConsoleApp.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251124093523_RemovePinSeed")]
-    partial class RemovePinSeed
+    [Migration("20251124101504_FullSchemaSetup")]
+    partial class FullSchemaSetup
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

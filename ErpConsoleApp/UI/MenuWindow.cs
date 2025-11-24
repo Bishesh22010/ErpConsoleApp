@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Terminal.Gui;
+using ErpConsoleApp.Database; // Ensure we have access if needed
 
 namespace ErpConsoleApp.UI
 {
@@ -32,6 +33,7 @@ namespace ErpConsoleApp.UI
             "Salary",
             "Voucher",
             "Reports",
+            "Settings" // Settings is in the list, but handled specially
         };
 
         public MenuWindow() : base("Main Menu")
@@ -42,7 +44,7 @@ namespace ErpConsoleApp.UI
             Width = Dim.Fill();
             Height = Dim.Fill();
 
-            // --- Left Pane (Modules) ---
+            // --- 1. Initialize Left Pane ---
             var leftPane = new FrameView("Modules")
             {
                 X = 0,
@@ -52,6 +54,7 @@ namespace ErpConsoleApp.UI
                 ColorScheme = Colors.WindowScheme
             };
 
+            // Note: 'Settings' is included here in the main module list based on your screenshot
             moduleList = new ListView(new List<string> { "Inventory", "Salary", "Settings", "Stop" })
             {
                 X = 0,
@@ -60,13 +63,9 @@ namespace ErpConsoleApp.UI
                 Height = Dim.Fill(),
                 ColorScheme = Colors.TextScheme
             };
-
-            // Event handler for when a module is selected
-            moduleList.SelectedItemChanged += OnModuleSelected;
-
             leftPane.Add(moduleList);
 
-            // --- Right Pane (Options) ---
+            // --- 2. Initialize Right Pane (CRITICAL: Do this before setting events) ---
             // FIXED: Assign to 'rightPane', NOT 'optionsFrame'
             rightPane = new FrameView("Options")
             {
@@ -85,32 +84,37 @@ namespace ErpConsoleApp.UI
                 Height = Dim.Fill(),
                 ColorScheme = Colors.TextScheme
             };
-
-            // Event handler for when an option is selected (e.g., "Purchase")
+            // Event handler for when an option inside the right pane is selected
             optionsList.OpenSelectedItem += OnOptionSelected;
 
-            // Initially add the options list to the right pane
+            // Initially add the options list to the right pane (default state)
             rightPane.Add(optionsList);
 
+            // Add panes to the window
             Add(leftPane, rightPane);
 
-            // Set initial state
-            moduleList.SetSource(new List<string> { "Inventory", "Salary", "Settings", "Stop" });
+            // --- 3. Subscribe to Events & Set Initial State ---
+            // NOW it is safe to subscribe, because rightPane is not null.
+            moduleList.SelectedItemChanged += OnModuleSelected;
+
+            // Trigger the initial selection manually to load the first item (Inventory)
             moduleList.SelectedItem = 0;
             moduleList.SetFocus();
         }
 
-        /// <summary>
-        /// Called when user selects "Inventory", "Salary", or "Stop".
-        /// </summary>
         private void OnModuleSelected(ListViewItemEventArgs args)
         {
-            // Clear whatever is currently in the right pane
-            // This logic works now because rightPane is initialized!
-            rightPane.RemoveAll();
+            // Safety check
+            if (rightPane == null) return;
 
+            // Clear whatever is currently in the right pane
+            rightPane.RemoveAll();
+            
+            if (args.Value == null) return;
             string selectedModule = args.Value.ToString();
-            rightPane.Title = $"{selectedModule}";
+            
+            // Update the title of the right pane
+            rightPane.Title = selectedModule; 
 
             if (selectedModule == "Inventory")
             {
@@ -126,7 +130,7 @@ namespace ErpConsoleApp.UI
             }
             else if (selectedModule == "Settings")
             {
-                // --- NEW: EMBED SETTINGS DIRECTLY ---
+                // --- EMBED SETTINGS DIRECTLY ---
                 rightPane.Title = "System Settings";
                 rightPane.Add(new SettingsView());
             }
@@ -140,66 +144,59 @@ namespace ErpConsoleApp.UI
                 else
                 {
                     // Cancelled, go back to top
-                    // We need to restore the previous view if they cancel logout from "Stop"
-                    // Default back to Inventory for simplicity
+                    // This might trigger this event again, so be careful.
+                    // Setting it to 0 (Inventory) is safe.
                     moduleList.SelectedItem = 0;
+                    // Ensure we re-render the Inventory view since we just cleared rightPane
+                    rightPane.Title = "Inventory Options";
+                    optionsList.SetSource(inventoryOptions);
+                    rightPane.Add(optionsList);
                 }
             }
         }
 
-        /// <summary>
-        /// Called when user presses Enter on an option (e.g., "Purchase").
-        /// </summary>
         private void OnOptionSelected(ListViewItemEventArgs args)
         {
+            if (args.Value == null) return;
             string selectedOption = args.Value.ToString();
 
-            if (selectedOption == "Purchase")
+            try 
             {
-                // Open the Purchase window as a modal dialog
-                Program.OpenModal(new PurchaseWindow());
+                if (selectedOption == "Purchase") Program.OpenModal(new PurchaseWindow());
+                else if (selectedOption == "Add & Delete Party") Program.OpenModal(new ManagePartiesWindow());
+                else if (selectedOption == "Payment") Program.OpenModal(new PaymentWindow());
+                else if (selectedOption == "Item Add and Delete") Program.OpenModal(new ManageItemsWindow());
+                else if (selectedOption == "Monthly Report") Program.OpenModal(new MonthlyReportWindow());
+                else if (selectedOption == "PartyWise Report") Program.OpenModal(new PartyWiseReportWindow());
+                
+                else if (selectedOption == "Manage Employee") Program.OpenModal(new ManageEmployeeWindow());
+                else if (selectedOption == "Salary") Program.OpenModal(new SalaryWindow());
+                else if (selectedOption == "Voucher") Program.OpenModal(new VoucherWindow());
+                
+                else if (selectedOption == "Reports") Program.OpenModal(new ReportsWindow());
+                
+                // If "Settings" is clicked from the Salary sub-menu (as per your list), 
+                // we can decide what to do. Since Settings is now a main module, 
+                // clicking it here could just switch the main module selection, 
+                // or open the modal wrapper if you prefer.
+                else if (selectedOption == "Settings") 
+                {
+                    // Option A: Switch the main left menu to "Settings"
+                    // moduleList.SelectedItem = 2; // Assuming Settings is at index 2
+                    
+                    // Option B: Just show the view right here (simpler)
+                    rightPane.RemoveAll();
+                    rightPane.Title = "System Settings";
+                    rightPane.Add(new SettingsView());
+                }
+                else
+                {
+                    Program.ShowMessage("Not Implemented", $"The action '{selectedOption}' is not yet implemented.");
+                }
             }
-            // --- ADDED THIS BLOCK ---
-            else if (selectedOption == "Add & Delete Party")
+            catch (Exception ex)
             {
-                Program.OpenModal(new ManagePartiesWindow());
-            }
-            // --- END OF ADDED BLOCK ---
-            else if (selectedOption == "Payment")
-            {
-                Program.OpenModal(new PaymentWindow());
-            }
-            else if (selectedOption == "Item Add and Delete")
-            {
-                Program.OpenModal(new ManageItemsWindow());
-            }
-            else if (selectedOption == "Monthly Report")
-            {
-                Program.OpenModal(new MonthlyReportWindow());
-            }
-            else if (selectedOption == "PartyWise Report")
-            {
-                Program.OpenModal(new PartyWiseReportWindow());
-            }
-            else if (selectedOption == "Manage Employee")
-            {
-                Program.OpenModal(new ManageEmployeeWindow());
-            }
-            else if (selectedOption == "Salary")
-            {
-                Program.OpenModal(new SalaryWindow());
-            }
-            else if (selectedOption == "Voucher")
-            {
-                Program.OpenModal(new VoucherWindow());
-            }
-            else if (selectedOption == "Reports")
-            {
-                Program.OpenModal(new ReportsWindow());
-            }
-            else
-            {
-                Program.ShowMessage("Not Implemented", $"The action '{selectedOption}' is not yet implemented.");
+                Program.ShowError("Error", $"An unexpected error occurred: {ex.Message}");
             }
         }
     }

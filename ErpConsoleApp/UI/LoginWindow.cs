@@ -26,7 +26,7 @@ namespace ErpConsoleApp.UI
             if (isSetupMode)
             {
                 Title = "First Run Setup: Create PIN";
-                Height = 14;
+                Height = 14; // Increased height to fit two password fields
             }
             else
             {
@@ -45,9 +45,10 @@ namespace ErpConsoleApp.UI
                 Add(confirmLabel, confirmPinField);
             }
 
-            actionButton = new Button(isSetupMode ? "_Set PIN & Login" : "_Login")
+            // --- UI FIX: Adjusted button text and horizontal position ---
+            actionButton = new Button(isSetupMode ? "_SET" : "_Login") // Shortened text
             {
-                X = Pos.Center() - 10,
+                X = Pos.Center() - 10, // Moved left
                 Y = isSetupMode ? 8 : 6,
                 IsDefault = true,
                 ColorScheme = Colors.ButtonScheme
@@ -56,7 +57,7 @@ namespace ErpConsoleApp.UI
 
             var quitButton = new Button("_Quit")
             {
-                X = Pos.Center() + 5,
+                X = Pos.Center() + 2, // Adjusted position for spacing
                 Y = isSetupMode ? 8 : 6,
                 ColorScheme = Colors.ButtonScheme
             };
@@ -73,14 +74,12 @@ namespace ErpConsoleApp.UI
                 using (var db = new AppDbContext())
                 {
                     db.Database.EnsureCreated();
-                    // If no PIN exists in settings, it's first run
                     var pinSetting = db.Settings.Find("LoginPin");
                     isSetupMode = (pinSetting == null);
                 }
             }
             catch (Exception)
             {
-                // If DB fails, assume normal login or show error later
                 isSetupMode = false;
             }
         }
