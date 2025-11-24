@@ -10,7 +10,8 @@ namespace ErpConsoleApp.UI
     public class MenuWindow : Window
     {
         private ListView moduleList;
-        private FrameView optionsFrame;
+        // private FrameView optionsFrame; // REMOVED: Duplicate logic
+        private FrameView rightPane;       // This is the main right-side container
         private ListView optionsList;
 
         // Lists of options for the right-hand pane
@@ -31,7 +32,6 @@ namespace ErpConsoleApp.UI
             "Salary",
             "Voucher",
             "Reports",
-            "Settings"
         };
 
         public MenuWindow() : base("Main Menu")
@@ -52,7 +52,7 @@ namespace ErpConsoleApp.UI
                 ColorScheme = Colors.WindowScheme
             };
 
-            moduleList = new ListView(new List<string> { "Inventory", "Salary", "Stop" })
+            moduleList = new ListView(new List<string> { "Inventory", "Salary", "Settings", "Stop" })
             {
                 X = 0,
                 Y = 0,
@@ -67,7 +67,8 @@ namespace ErpConsoleApp.UI
             leftPane.Add(moduleList);
 
             // --- Right Pane (Options) ---
-            optionsFrame = new FrameView("Options")
+            // FIXED: Assign to 'rightPane', NOT 'optionsFrame'
+            rightPane = new FrameView("Options")
             {
                 X = 25,
                 Y = 0,
@@ -88,12 +89,13 @@ namespace ErpConsoleApp.UI
             // Event handler for when an option is selected (e.g., "Purchase")
             optionsList.OpenSelectedItem += OnOptionSelected;
 
-            optionsFrame.Add(optionsList);
+            // Initially add the options list to the right pane
+            rightPane.Add(optionsList);
 
-            Add(leftPane, optionsFrame);
+            Add(leftPane, rightPane);
 
             // Set initial state
-            moduleList.SetSource(new List<string> { "Inventory", "Salary", "Stop" });
+            moduleList.SetSource(new List<string> { "Inventory", "Salary", "Settings", "Stop" });
             moduleList.SelectedItem = 0;
             moduleList.SetFocus();
         }
@@ -103,31 +105,44 @@ namespace ErpConsoleApp.UI
         /// </summary>
         private void OnModuleSelected(ListViewItemEventArgs args)
         {
+            // Clear whatever is currently in the right pane
+            // This logic works now because rightPane is initialized!
+            rightPane.RemoveAll();
+
             string selectedModule = args.Value.ToString();
+            rightPane.Title = $"{selectedModule}";
 
             if (selectedModule == "Inventory")
             {
-                optionsFrame.Title = "Inventory Options";
+                rightPane.Title = "Inventory Options";
                 optionsList.SetSource(inventoryOptions);
+                rightPane.Add(optionsList);
             }
             else if (selectedModule == "Salary")
             {
-                optionsFrame.Title = "Salary Options";
+                rightPane.Title = "Salary Options";
                 optionsList.SetSource(salaryOptions);
+                rightPane.Add(optionsList);
+            }
+            else if (selectedModule == "Settings")
+            {
+                // --- NEW: EMBED SETTINGS DIRECTLY ---
+                rightPane.Title = "System Settings";
+                rightPane.Add(new SettingsView());
             }
             else if (selectedModule == "Stop")
             {
                 // Ask for logout confirmation
                 if (Program.ShowQuery("Logout", "Are you sure you want to logout?"))
-                { // Reset selection if they click "No"
-                    optionsFrame.Title = "Options";
-                    optionsList.SetSource(new List<string>());
-                    moduleList.SelectedItem = 0; // Go back to "Inventory"
-                    
+                {
+                    Program.ShowLoginPage();
                 }
                 else
                 {
-                    Program.ShowLoginPage();
+                    // Cancelled, go back to top
+                    // We need to restore the previous view if they cancel logout from "Stop"
+                    // Default back to Inventory for simplicity
+                    moduleList.SelectedItem = 0;
                 }
             }
         }
@@ -150,19 +165,19 @@ namespace ErpConsoleApp.UI
                 Program.OpenModal(new ManagePartiesWindow());
             }
             // --- END OF ADDED BLOCK ---
-            else if(selectedOption == "Payment")
+            else if (selectedOption == "Payment")
             {
                 Program.OpenModal(new PaymentWindow());
             }
-            else if(selectedOption == "Item Add and Delete")
+            else if (selectedOption == "Item Add and Delete")
             {
                 Program.OpenModal(new ManageItemsWindow());
             }
-            else if(selectedOption == "Monthly Report")
+            else if (selectedOption == "Monthly Report")
             {
                 Program.OpenModal(new MonthlyReportWindow());
             }
-            else if(selectedOption == "PartyWise Report")
+            else if (selectedOption == "PartyWise Report")
             {
                 Program.OpenModal(new PartyWiseReportWindow());
             }
@@ -178,7 +193,7 @@ namespace ErpConsoleApp.UI
             {
                 Program.OpenModal(new VoucherWindow());
             }
-            else if(selectedOption == "Reports")
+            else if (selectedOption == "Reports")
             {
                 Program.OpenModal(new ReportsWindow());
             }

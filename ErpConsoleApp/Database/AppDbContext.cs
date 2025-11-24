@@ -16,6 +16,7 @@ namespace ErpConsoleApp.Database
         public DbSet<SalaryRecord> Salaries { get; set; }
         public DbSet<Voucher> Vouchers { get; set; }
         public DbSet<Log> Logs { get; set; }
+        public DbSet<AppSetting> Settings { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -23,6 +24,13 @@ namespace ErpConsoleApp.Database
             // --- MODIFIED LINE ---
             // Go up 3 directories (from bin/Debug/net8.0) to the project root
             optionsBuilder.UseSqlite("Data Source=../../../erp.db");
+        }
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            // Seed default PIN
+            modelBuilder.Entity<AppSetting>().HasData(
+                new AppSetting { Key = "LoginPin", Value = "1234" }
+            );
         }
     }
 }

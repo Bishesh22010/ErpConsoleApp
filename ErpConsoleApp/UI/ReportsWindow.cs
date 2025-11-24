@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics; // For opening files
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -12,19 +13,19 @@ namespace ErpConsoleApp.UI
 {
     public class ReportsWindow : Window
     {
-        // Filter Controls
+        // Generation Controls
         private DateField startDateField;
         private DateField endDateField;
         private ComboBox reportTypeCombo;
-
-        // Log Controls
+        private ComboBox employeeCombo;
         private ComboBox logModuleCombo;
 
-        // Custom Report Controls
-        private ComboBox employeeCombo;
+        // Recent Files Controls
+        private ListView recentFilesList;
+        private List<FileInfo> recentFiles = new List<FileInfo>();
         private List<Employee> employees = new List<Employee>();
 
-        public ReportsWindow() : base("Generate Reports & Logs (Press ESC to go back)")
+        public ReportsWindow() : base("Reports Center (Press ESC to go back)")
         {
             ColorScheme = Colors.WindowScheme;
             X = 0; Y = 0; Width = Dim.Fill(); Height = Dim.Fill(); Modal = true;
@@ -32,100 +33,104 @@ namespace ErpConsoleApp.UI
             KeyDown += (e) => { if (e.KeyEvent.Key == Key.Esc) { Application.RequestStop(); e.Handled = true; } };
 
             // ========================================================
-            // LEFT PANE: STANDARD REPORTS
+            // LEFT PANE: GENERATION CONTROLS (65%)
             // ========================================================
-            var stdReportFrame = new FrameView("Standard Reports")
+            var leftFrame = new FrameView("Generate Reports")
             {
                 X = 0,
                 Y = 0,
-                Width = Dim.Percent(50),
-                Height = Dim.Percent(60)
+                Width = Dim.Percent(65),
+                Height = Dim.Fill(1)
             };
 
-            int y = 1;
-            stdReportFrame.Add(new Label("Timeframe:") { X = 1, Y = y, ColorScheme = Colors.MenuScheme });
+            // --- Section 1: Standard Reports ---
+            leftFrame.Add(new Label("--- Standard Reports ---") { X = 1, Y = 0, ColorScheme = Colors.MenuScheme });
 
+            leftFrame.Add(new Label("Date Range:") { X = 1, Y = 2 });
             startDateField = new DateField(new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1))
-            { X = 15, Y = y, Width = 12, ColorScheme = Colors.TextScheme };
+            { X = 15, Y = 2, Width = 12, ColorScheme = Colors.TextScheme };
+            leftFrame.Add(startDateField);
 
-            stdReportFrame.Add(startDateField);
-            stdReportFrame.Add(new Label("to") { X = 29, Y = y });
-
+            leftFrame.Add(new Label("to") { X = 30, Y = 2 });
             endDateField = new DateField(DateTime.Now)
-            { X = 34, Y = y, Width = 12, ColorScheme = Colors.TextScheme };
-            stdReportFrame.Add(endDateField);
+            { X = 35, Y = 2, Width = 12, ColorScheme = Colors.TextScheme };
+            leftFrame.Add(endDateField);
 
-            y += 2;
-            stdReportFrame.Add(new Label("Report Type:") { X = 1, Y = y, ColorScheme = Colors.MenuScheme });
+            leftFrame.Add(new Label("Type:") { X = 1, Y = 4 });
             reportTypeCombo = new ComboBox()
-            { X = 15, Y = y, Width = 30, Height = 5, ColorScheme = Colors.TextScheme };
+            { X = 15, Y = 4, Width = 30, Height = 4, ColorScheme = Colors.TextScheme };
             reportTypeCombo.SetSource(new List<string> { "Employee Data", "Salary Data", "Voucher Data" });
             reportTypeCombo.SelectedItem = 0;
-            stdReportFrame.Add(reportTypeCombo);
+            leftFrame.Add(reportTypeCombo);
 
-            y += 2;
-            var btnGenerateStd = new Button("Generate _Standard Report")
-            { X = 15, Y = y, ColorScheme = Colors.ButtonScheme };
-            btnGenerateStd.Clicked += () => GenerateReport(false);
-            stdReportFrame.Add(btnGenerateStd);
+            var btnStd = new Button("Generate _Standard") { X = 50, Y = 4, ColorScheme = Colors.ButtonScheme };
+            btnStd.Clicked += () => GenerateReport(false);
+            leftFrame.Add(btnStd);
 
-            // ========================================================
-            // RIGHT PANE: ACTIVITY LOGS
-            // ========================================================
-            var logFrame = new FrameView("Activity Logs")
-            {
-                X = Pos.Right(stdReportFrame),
-                Y = 0,
-                Width = Dim.Fill(),
-                Height = Dim.Percent(60)
-            };
+            // --- Section 2: Custom Reports ---
+            leftFrame.Add(new Label("--- Custom Employee Report ---") { X = 1, Y = 8, ColorScheme = Colors.MenuScheme });
 
-            y = 1;
-            logFrame.Add(new Label("Module:") { X = 1, Y = y, ColorScheme = Colors.MenuScheme });
+            leftFrame.Add(new Label("Employee:") { X = 1, Y = 10 });
+            employeeCombo = new ComboBox()
+            { X = 15, Y = 10, Width = 30, Height = 4, ColorScheme = Colors.TextScheme };
+            leftFrame.Add(employeeCombo);
+
+            var btnCustom = new Button("Generate _Custom") { X = 50, Y = 10, ColorScheme = Colors.ButtonScheme };
+            btnCustom.Clicked += () => GenerateReport(true);
+            leftFrame.Add(btnCustom);
+
+            // --- Section 3: Logs ---
+            /*leftFrame.Add(new Label("--- System Logs ---") { X = 1, Y = 14, ColorScheme = Colors.MenuScheme });
+
+            leftFrame.Add(new Label("Module:") { X = 1, Y = 16 });
             logModuleCombo = new ComboBox()
-            { X = 10, Y = y, Width = 30, Height = 10, ColorScheme = Colors.TextScheme };
+            { X = 15, Y = 16, Width = 30, Height = 4, ColorScheme = Colors.TextScheme };
             logModuleCombo.SetSource(new List<string> {
                 "All Modules", "Dashboard", "Manage Employee", "Salary", "Voucher", "Reports", "Settings", "Login"
             });
             logModuleCombo.SelectedItem = 0;
-            logFrame.Add(logModuleCombo);
+            leftFrame.Add(logModuleCombo);*/
 
-            y += 2;
-            var btnDownloadLog = new Button("Download _Activity Log")
-            { X = 10, Y = y, ColorScheme = Colors.ButtonScheme };
-            btnDownloadLog.Clicked += DownloadLogs;
-            logFrame.Add(btnDownloadLog);
+           /* var btnLog = new Button("Download _Logs") { X = 50, Y = 16, ColorScheme = Colors.ButtonScheme };
+            btnLog.Clicked += DownloadLogs;
+            leftFrame.Add(btnLog);*/
+
 
             // ========================================================
-            // BOTTOM PANE: CUSTOM REPORTS
+            // RIGHT PANE: RECENT FILES (35%)
             // ========================================================
-            var customReportFrame = new FrameView("Custom Report (Single Employee)")
+            var rightFrame = new FrameView("Recent Reports")
             {
-                X = 0,
-                Y = Pos.Bottom(stdReportFrame),
+                X = Pos.Right(leftFrame),
+                Y = 0,
                 Width = Dim.Fill(),
                 Height = Dim.Fill(1)
             };
 
-            y = 1;
-            customReportFrame.Add(new Label("Select Employee:") { X = 1, Y = y, ColorScheme = Colors.MenuScheme });
-            employeeCombo = new ComboBox()
-            { X = 20, Y = y, Width = 30, Height = 5, ColorScheme = Colors.TextScheme };
-            customReportFrame.Add(employeeCombo);
+            recentFilesList = new ListView()
+            {
+                X = 0,
+                Y = 0,
+                Width = Dim.Fill(),
+                Height = Dim.Fill(),
+                ColorScheme = Colors.TextScheme
+            };
+            recentFilesList.OpenSelectedItem += (e) => OpenRecentFile();
+            rightFrame.Add(recentFilesList);
 
-            var btnGenerateCustom = new Button("Generate _Custom Report")
-            { X = 55, Y = y, ColorScheme = Colors.ButtonScheme };
-            btnGenerateCustom.Clicked += () => GenerateReport(true);
-            customReportFrame.Add(btnGenerateCustom);
+            // --- Footer ---
+            var btnOpen = new Button("Open _Selected File")
+            { X = Pos.Center() - 20, Y = Pos.AnchorEnd(1), ColorScheme = Colors.ButtonScheme };
+            btnOpen.Clicked += OpenRecentFile;
 
-            // Footer
             var btnBack = new Button("_Back")
-            { X = Pos.Center(), Y = Pos.AnchorEnd(1), ColorScheme = Colors.ErrorScheme };
+            { X = Pos.Center() + 20, Y = Pos.AnchorEnd(1), ColorScheme = Colors.ErrorScheme };
             btnBack.Clicked += () => Application.RequestStop();
 
-            Add(stdReportFrame, logFrame, customReportFrame, btnBack);
+            Add(leftFrame, rightFrame, btnOpen, btnBack);
 
             LoadEmployees();
+            LoadRecentFiles();
         }
 
         private void LoadEmployees()
@@ -140,6 +145,47 @@ namespace ErpConsoleApp.UI
                 }
             }
             catch (Exception e) { Program.ShowError("DB Error", e.Message); }
+        }
+
+        private void LoadRecentFiles()
+        {
+            try
+            {
+                string appPath = AppDomain.CurrentDomain.BaseDirectory;
+                DirectoryInfo d = new DirectoryInfo(appPath);
+
+                // Find files starting with "Report_", "PartyReport_", or "Logs_"
+                recentFiles = d.GetFiles("*_*.*")
+                               .Where(f => (f.Name.StartsWith("Report_") || f.Name.StartsWith("PartyReport_") || f.Name.StartsWith("Logs_"))
+                                           && (f.Extension.ToLower() == ".csv" || f.Extension.ToLower() == ".txt"))
+                               .OrderByDescending(f => f.CreationTime)
+                               .Take(15)
+                               .ToList();
+
+                var fileNames = recentFiles.Select(f => f.Name).ToList();
+                if (fileNames.Count == 0) fileNames.Add("No recent reports found.");
+
+                recentFilesList.SetSource(fileNames);
+            }
+            catch { /* Ignore errors if folder access is denied */ }
+        }
+
+        private void OpenRecentFile()
+        {
+            if (recentFilesList.SelectedItem < 0 || recentFilesList.SelectedItem >= recentFiles.Count)
+            {
+                Program.ShowError("Error", "Select a file to open."); return;
+            }
+
+            var file = recentFiles[recentFilesList.SelectedItem];
+            try
+            {
+                new Process
+                {
+                    StartInfo = new ProcessStartInfo(file.FullName) { UseShellExecute = true }
+                }.Start();
+            }
+            catch (Exception e) { Program.ShowError("Error", $"Could not open file:\n{e.Message}"); }
         }
 
         // --- REPORT GENERATION LOGIC ---
@@ -163,25 +209,26 @@ namespace ErpConsoleApp.UI
                 reportType = $"Custom Report - {employees[employeeCombo.SelectedItem].Name}";
             }
 
-            // Ask for Format
             var format = AskForFormat();
-            if (string.IsNullOrEmpty(format)) return; // Cancelled
+            if (string.IsNullOrEmpty(format)) return;
 
             try
             {
                 using (var db = new AppDbContext())
                 {
                     StringBuilder sb = new StringBuilder();
-                    string fileName = $"{reportType.Replace(" ", "")}_{DateTime.Now:yyyyMMdd_HHmm}.{format.ToLower()}";
+                    string fileName = $"Report_{reportType.Replace(" ", "")}_{DateTime.Now:yyyyMMdd_HHmm}.{format.ToLower()}";
+                    string fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
 
-                    // Build Data
                     if (format == "CSV") sb.AppendLine(GetCsvHeader(reportType));
                     else sb.AppendLine(GetTextHeader(reportType));
 
                     // Fetch and Process Data
+                    bool hasData = false;
                     if (reportType.Contains("Employee Data"))
                     {
-                        var data = db.Employees.ToList(); // Date filter doesn't apply well to static employee data usually
+                        var data = db.Employees.ToList();
+                        if (data.Any()) hasData = true;
                         foreach (var d in data)
                         {
                             if (format == "CSV") sb.AppendLine($"{d.Id},{d.Name},{d.MobNo},{d.Salary},{d.Borrow}");
@@ -194,7 +241,9 @@ namespace ErpConsoleApp.UI
                         query = query.Where(s => s.PaymentDate >= startDateField.Date && s.PaymentDate <= endDateField.Date);
                         if (employeeId.HasValue) query = query.Where(s => s.EmployeeId == employeeId.Value);
 
-                        foreach (var s in query.ToList())
+                        var list = query.ToList();
+                        if (list.Any()) hasData = true;
+                        foreach (var s in list)
                         {
                             if (format == "CSV") sb.AppendLine($"{s.PaymentDate:yyyy-MM-dd},{s.Employee.Name},{s.SalaryAmount},{s.FinalSalary}");
                             else sb.AppendLine($"{s.PaymentDate:yyyy-MM-dd} | {s.Employee.Name,-20} | Base: {s.SalaryAmount,10:N2} | Paid: {s.FinalSalary,10:N2}");
@@ -203,24 +252,29 @@ namespace ErpConsoleApp.UI
                     else if (reportType.Contains("Voucher Data"))
                     {
                         var query = db.Vouchers.Include(v => v.Employee).Where(v => v.VoucherDate >= startDateField.Date && v.VoucherDate <= endDateField.Date);
-                        foreach (var v in query.ToList())
+                        var list = query.ToList();
+                        if (list.Any()) hasData = true;
+                        foreach (var v in list)
                         {
                             if (format == "CSV") sb.AppendLine($"{v.VoucherDate:yyyy-MM-dd},{v.Employee.Name},{v.Amount},{v.Reason}");
                             else sb.AppendLine($"{v.VoucherDate:yyyy-MM-dd} | {v.Employee.Name,-20} | {v.Amount,10:N2} | {v.Reason}");
                         }
                     }
 
-                    File.WriteAllText(fileName, sb.ToString());
-                    Program.ShowMessage("Success", $"Report saved to:\n{fileName}");
+                    if (!hasData) { Program.ShowError("Info", "No data found for this period."); return; }
+
+                    File.WriteAllText(fullPath, sb.ToString());
+                    Program.ShowMessage("Success", $"Saved: {fileName}");
+                    LoadRecentFiles(); // Refresh list
                 }
             }
             catch (Exception e) { Program.ShowError("Error", e.Message); }
         }
-
+        /*
         private void DownloadLogs()
         {
             string module = logModuleCombo.Text.ToString();
-            var format = AskForFormat(); // Reuse format picker
+            var format = AskForFormat();
             if (string.IsNullOrEmpty(format)) return;
 
             try
@@ -234,7 +288,8 @@ namespace ErpConsoleApp.UI
                     if (logs.Count == 0) { Program.ShowError("Info", "No logs found."); return; }
 
                     StringBuilder sb = new StringBuilder();
-                    string fileName = $"Logs_{module.Replace(" ", "")}_{DateTime.Now:yyyyMMdd}.{format.ToLower()}";
+                    string fileName = $"Logs_{module.Replace(" ", "")}_{DateTime.Now:yyyyMMdd_HHmm}.{format.ToLower()}";
+                    string fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
 
                     if (format == "CSV") sb.AppendLine("Timestamp,Module,Action");
 
@@ -244,14 +299,14 @@ namespace ErpConsoleApp.UI
                         else sb.AppendLine($"[{l.Timestamp}] [{l.Module}] {l.Action}");
                     }
 
-                    File.WriteAllText(fileName, sb.ToString());
-                    Program.ShowMessage("Success", $"Logs saved to:\n{fileName}");
+                    File.WriteAllText(fullPath, sb.ToString());
+                    Program.ShowMessage("Success", $"Logs saved: {fileName}");
+                    LoadRecentFiles(); // Refresh list
                 }
             }
             catch (Exception e) { Program.ShowError("Error", e.Message); }
-        }
+        }*/
 
-        // Helper to ask user for format
         private string AskForFormat()
         {
             int result = MessageBox.Query("Select Format", "Choose export format:", "Excel (CSV)", "Text File", "Cancel");
