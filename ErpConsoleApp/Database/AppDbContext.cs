@@ -27,10 +27,8 @@ namespace ErpConsoleApp.Database
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Seed default PIN
-            modelBuilder.Entity<AppSetting>().HasData(
-                new AppSetting { Key = "LoginPin", Value = "1234" }
-            );
+            // --- REMOVED SEED DATA ---
+            // We want the database to start empty so the app detects "First Run".
         }
     }
 }
