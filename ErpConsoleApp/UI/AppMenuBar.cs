@@ -14,7 +14,7 @@ namespace ErpConsoleApp.UI
 
             // Define the menu structure
             Menus = new MenuBarItem[] {
-                new MenuBarItem("_File (F9)", new MenuItem[] {
+                new MenuBarItem("_File", new MenuItem[] {
                     new MenuItem("_Logout", "", () => Program.ShowLoginPage()),
                     new MenuItem("_Quit", "", () => Application.RequestStop(), null, null, Key.Q | Key.CtrlMask)
                 }),
@@ -29,7 +29,7 @@ namespace ErpConsoleApp.UI
                     
                     new MenuItem("_Balance Sheet", "", null)
                 }),
-                new MenuBarItem("_Salary", new MenuItem[] {
+                new MenuBarItem("_Salary  (Press Alt", new MenuItem[] {
                     new MenuItem("_Manage Employee", "",() => Program.OpenModal(new ManageEmployeeWindow())),
                     new MenuItem("_Salary", "",() => Program.OpenModal(new SalaryWindow())),
                     new MenuItem("_Voucher", "",() => Program.OpenModal(new VoucherWindow())),

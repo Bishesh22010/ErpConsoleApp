@@ -3,6 +3,8 @@ using System;
 using Terminal.Gui;
 using ErpConsoleApp.Database; // <-- THIS IS THE REQUIRED LINE
 using ErpConsoleApp.UI;     // Import UI classes
+using System.Linq;
+
 
 namespace ErpConsoleApp
 {
@@ -12,6 +14,7 @@ namespace ErpConsoleApp
     {
         static int Main(string[] args)
         {
+
             // Apply database migrations on startup
             try
             {
@@ -57,6 +60,27 @@ namespace ErpConsoleApp
 
             // Add the main window
             Application.Top.Add(new MenuWindow());
+            Application.Top.KeyPress += (args) =>
+            {
+                var key = args.KeyEvent.Key;
+
+                if (key == (Key)'1')
+                {
+                    Program.OpenModal(new SettingsWindow());
+                    args.Handled = true;
+                }
+                else if (key == (Key)'2')
+                {
+                    Program.OpenModal(new PurchaseWindow());
+                    args.Handled = true;
+                }
+                else if (key == (Key)'3')
+                {
+                    Program.OpenModal(new SalaryWindow());
+                    args.Handled = true;
+                }
+            };
+
         }
 
         /// <summary>

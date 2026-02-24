@@ -69,9 +69,7 @@ namespace ErpConsoleApp.UI
             };
             listFrame.Add(slipList);
 
-            // --- Bottom: Buttons (FIXED LAYOUT) ---
-
-            // Move "Pay" button further left
+            // --- Bottom: Buttons ---
             var payButton = new Button("_Pay Selected Slip")
             {
                 X = Pos.Center() - 35,
@@ -80,7 +78,6 @@ namespace ErpConsoleApp.UI
             };
             payButton.Clicked += OnPaySlip;
 
-            // Move "Master Clear" button to sit in the middle
             var masterClearButton = new Button("_Master Clear (All Pending)")
             {
                 X = Pos.Center() - 10,
@@ -89,7 +86,6 @@ namespace ErpConsoleApp.UI
             };
             masterClearButton.Clicked += OnMasterClear;
 
-            // Move "Back" button further right
             var closeButton = new Button("_Back")
             {
                 X = Pos.Center() + 25,
@@ -172,7 +168,6 @@ namespace ErpConsoleApp.UI
                 Program.ShowMessage("Info", "This slip is already CLEARED."); return;
             }
 
-            // --- Open Sub-Window (Dialog) ---
             ShowPaymentDialog(selectedSlip);
         }
 
@@ -182,9 +177,10 @@ namespace ErpConsoleApp.UI
 
             decimal remaining = slip.Amount - slip.PaidAmount;
 
-            var lblTotal = new Label($"Total Amount:     {slip.Amount:C}") { X = 2, Y = 1 };
-            var lblPaid = new Label($"Already Paid:     {slip.PaidAmount:C}") { X = 2, Y = 2 };
-            var lblLeft = new Label($"Remaining:        {remaining:C}") { X = 2, Y = 3 };
+            // FIXED: Using :N2 instead of :C to avoid unwanted currency symbols (like $)
+            var lblTotal = new Label($"Total Amount:      ₹{slip.Amount:N2}") { X = 2, Y = 1 };
+            var lblPaid = new Label($"Already Paid:      ₹{slip.PaidAmount:N2}") { X = 2, Y = 2 };
+            var lblLeft = new Label($"Remaining:         ₹{remaining:N2}") { X = 2, Y = 3 };
 
             var lblInput = new Label("Enter Payment:") { X = 2, Y = 5 };
             var amountField = new TextField("") { X = 20, Y = 5, Width = 20, ColorScheme = Colors.TextScheme };
@@ -206,7 +202,7 @@ namespace ErpConsoleApp.UI
             btnMarkCleared.Clicked += () => {
                 if (Program.ShowQuery("Confirm", "Mark as fully CLEARED?"))
                 {
-                    ProcessPayment(slip.PurchaseSlipId, 0, true); // 0 amount, force clear
+                    ProcessPayment(slip.PurchaseSlipId, 0, true);
                     Application.RequestStop();
                 }
             };
@@ -229,7 +225,7 @@ namespace ErpConsoleApp.UI
                         if (forceClear)
                         {
                             slip.IsPaid = true;
-                            slip.PaidAmount = slip.Amount; // Assuming clear means fully paid
+                            slip.PaidAmount = slip.Amount;
                         }
                         else
                         {
@@ -253,7 +249,6 @@ namespace ErpConsoleApp.UI
         {
             if (currentSlips.Count == 0) return;
 
-            // Logic: Only clear Pending slips. Do NOT clear Partial slips.
             var slipsToClear = currentSlips.Where(s => !s.IsPaid && s.PaidAmount == 0).ToList();
             int partialCount = currentSlips.Count(s => !s.IsPaid && s.PaidAmount > 0);
 
