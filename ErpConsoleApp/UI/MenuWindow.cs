@@ -168,7 +168,9 @@ namespace ErpConsoleApp.UI
                 else if (selectedOption == "Item Add and Delete") Program.OpenModal(new ManageItemsWindow());
                 else if (selectedOption == "Monthly Report") Program.OpenModal(new MonthlyReportWindow());
                 else if (selectedOption == "PartyWise Report") Program.OpenModal(new PartyWiseReportWindow());
-                
+                else if (selectedOption == "Item Wise Report") Program.OpenModal(new ItemWiseReportWindow());
+                else if (selectedOption == "Balance Sheet") Program.OpenModal(new BalanceSheetWindow());
+
                 else if (selectedOption == "Manage Employee") Program.OpenModal(new ManageEmployeeWindow());
                 else if (selectedOption == "Salary") Program.OpenModal(new SalaryWindow());
                 else if (selectedOption == "Voucher") Program.OpenModal(new VoucherWindow());

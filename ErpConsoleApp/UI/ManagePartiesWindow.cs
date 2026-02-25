@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.EntityFrameworkCore;
 using Terminal.Gui;
 using ErpConsoleApp.Database;
 using ErpConsoleApp.Database.Models;
@@ -10,40 +9,33 @@ namespace ErpConsoleApp.UI
 {
     public class ManagePartiesWindow : Window
     {
-        private ListView partyList;
-        private TextField partyNameField;
+        private ListView partyListView;
+        private TextField nameField;
+        private TextField gstField;
+        private TextField phoneField;
+        private TextView addressView; // Use TextView for multi-line address
         private List<Party> parties = new List<Party>();
         private Party selectedParty = null;
 
         public ManagePartiesWindow() : base("Manage Parties (Press ESC to go back)")
         {
             ColorScheme = Colors.WindowScheme;
+            X = 0; Y = 0; Width = Dim.Fill(); Height = Dim.Fill();
+            Modal = true;
 
-            // --- FULL SCREEN SETTINGS ---
-            X = 0;
-            Y = 0;
-            Width = Dim.Fill();
-            Height = Dim.Fill();
-
-            // --- ESCAPE KEY HANDLER ---
             KeyDown += (e) => {
-                if (e.KeyEvent.Key == Key.Esc)
-                {
-                    Application.RequestStop();
-                    e.Handled = true;
-                }
+                if (e.KeyEvent.Key == Key.Esc) { Application.RequestStop(); e.Handled = true; }
             };
 
-            // --- Left Pane: List (Takes 30% width) ---
-            var listFrame = new FrameView("Existing Parties")
+            // --- Left Pane: List ---
+            var leftPane = new FrameView("Existing Parties")
             {
                 X = 0,
                 Y = 0,
-                Width = Dim.Percent(30),
-                Height = Dim.Fill(1) // Leave space for footer
+                Width = 30,
+                Height = Dim.Fill(2)
             };
-
-            partyList = new ListView()
+            partyListView = new ListView()
             {
                 X = 0,
                 Y = 0,
@@ -51,166 +43,169 @@ namespace ErpConsoleApp.UI
                 Height = Dim.Fill(),
                 ColorScheme = Colors.TextScheme
             };
-            partyList.SelectedItemChanged += OnPartySelected;
-            listFrame.Add(partyList);
+            partyListView.SelectedItemChanged += OnPartySelectionChanged;
+            leftPane.Add(partyListView);
 
-            // --- Right Pane: Actions (Takes remaining 70%) ---
-            var editFrame = new FrameView("Add / Edit Party")
+            // --- Right Pane: Edit Form ---
+            var rightPane = new FrameView("Add / Edit Party")
             {
-                X = Pos.Right(listFrame),
+                X = 30,
                 Y = 0,
                 Width = Dim.Fill(),
-                Height = Dim.Fill(1)
+                Height = Dim.Fill(2)
             };
 
-            // Center the controls inside the right pane
-            var innerContainer = new View()
+            // Party Name
+            rightPane.Add(new Label("Party Name:") { X = 2, Y = 1 });
+            nameField = new TextField("") { X = 18, Y = 1, Width = Dim.Fill(2), ColorScheme = Colors.TextScheme };
+
+            // GST Number
+            rightPane.Add(new Label("GST Number:") { X = 2, Y = 3 });
+            gstField = new TextField("") { X = 18, Y = 3, Width = Dim.Fill(2), ColorScheme = Colors.TextScheme };
+
+            // Phone Number
+            rightPane.Add(new Label("Phone No:") { X = 2, Y = 5 });
+            phoneField = new TextField("") { X = 18, Y = 5, Width = Dim.Fill(2), ColorScheme = Colors.TextScheme };
+
+            // Address
+            rightPane.Add(new Label("Address:") { X = 2, Y = 7 });
+            addressView = new TextView()
             {
-                X = Pos.Center(),
-                Y = Pos.Center(),
-                Width = 40,
-                Height = 15
+                X = 18,
+                Y = 7,
+                Width = Dim.Fill(2),
+                Height = 3,
+                ColorScheme = Colors.TextScheme,
+                ReadOnly = false
             };
 
-            innerContainer.Add(new Label("Party Name:") { X = 0, Y = 0 });
-            partyNameField = new TextField("")
-            {
-                X = 0,
-                Y = 1,
-                Width = Dim.Fill(),
-                ColorScheme = Colors.TextScheme
-            };
+            // Buttons
+            var btnSave = new Button("_Save as New") { X = Pos.Center(), Y = 12, ColorScheme = Colors.ButtonScheme };
+            var btnUpdate = new Button("_Update Selected") { X = Pos.Center(), Y = 14, ColorScheme = Colors.ButtonScheme };
+            var btnDelete = new Button("_Delete Selected") { X = Pos.Center(), Y = 16, ColorScheme = Colors.ErrorScheme };
 
-            var saveNewButton = new Button("_Save as New")
-            {
-                X = 0,
-                Y = 3,
-                Width = Dim.Fill(),
-                ColorScheme = Colors.ButtonScheme
-            };
-            saveNewButton.Clicked += OnSaveNew;
+            btnSave.Clicked += OnSaveNew;
+            btnUpdate.Clicked += OnUpdateSelected;
+            btnDelete.Clicked += OnDeleteSelected;
 
-            var updateButton = new Button("_Update Selected")
-            {
-                X = 0,
-                Y = 5,
-                Width = Dim.Fill(),
-                ColorScheme = Colors.ButtonScheme
-            };
-            updateButton.Clicked += OnUpdate;
+            rightPane.Add(nameField, gstField, phoneField, addressView, btnSave, btnUpdate, btnDelete);
 
-            var deleteButton = new Button("_Delete Selected")
-            {
-                X = 0,
-                Y = 8,
-                Width = Dim.Fill(),
-                ColorScheme = Colors.ErrorScheme
-            };
-            deleteButton.Clicked += OnDelete;
-
-            innerContainer.Add(partyNameField, saveNewButton, updateButton, deleteButton);
-            editFrame.Add(innerContainer);
-
-            // --- Close Button (Footer) ---
-            var closeButton = new Button("_Back")
+            // Back Button at bottom
+            var btnBack = new Button("_Back")
             {
                 X = Pos.Center(),
                 Y = Pos.AnchorEnd(1),
-                IsDefault = true,
                 ColorScheme = Colors.ButtonScheme
             };
-            closeButton.Clicked += () => Application.RequestStop();
+            btnBack.Clicked += () => Application.RequestStop();
 
-            Add(listFrame, editFrame, closeButton);
-
-            LoadParties();
-            partyNameField.SetFocus();
+            Add(leftPane, rightPane, btnBack);
+            RefreshList();
         }
-        private void LoadParties()
+
+        private void RefreshList()
         {
             try
             {
                 using (var db = new AppDbContext())
                 {
                     parties = db.Parties.OrderBy(p => p.Name).ToList();
-                    partyList.SetSource(parties.Select(p => p.Name).ToList());
+                    partyListView.SetSource(parties.Select(p => p.Name).ToList());
                 }
-                selectedParty = null;
-                partyNameField.Text = "";
+                ClearFields();
             }
             catch (Exception e) { Program.ShowError("DB Error", e.Message); }
         }
 
-        private void OnPartySelected(ListViewItemEventArgs args)
+        private void ClearFields()
         {
-            if (args.Item >= 0 && args.Item < parties.Count)
-            {
-                selectedParty = parties[args.Item];
-                partyNameField.Text = selectedParty.Name;
-            }
-            else
-            {
-                selectedParty = null;
-                partyNameField.Text = "";
-            }
+            selectedParty = null;
+            nameField.Text = "";
+            gstField.Text = "";
+            phoneField.Text = "";
+            addressView.Text = "";
+        }
+
+        private void OnPartySelectionChanged(ListViewItemEventArgs args)
+        {
+            if (args.Item < 0 || args.Item >= parties.Count) return;
+            selectedParty = parties[args.Item];
+            nameField.Text = selectedParty.Name;
+            gstField.Text = selectedParty.GstNumber ?? "";
+            phoneField.Text = selectedParty.PhoneNumber ?? "";
+            addressView.Text = selectedParty.Address ?? "";
         }
 
         private void OnSaveNew()
         {
-            string name = partyNameField.Text?.ToString() ?? "";
-            if (string.IsNullOrWhiteSpace(name)) { Program.ShowError("Error", "Name required."); return; }
+            if (string.IsNullOrWhiteSpace(nameField.Text.ToString()))
+            {
+                Program.ShowError("Validation", "Name is required."); return;
+            }
+
             try
             {
                 using (var db = new AppDbContext())
                 {
-                    if (db.Parties.Any(p => p.Name.ToLower() == name.ToLower()))
+                    db.Parties.Add(new Party
                     {
-                        Program.ShowError("Error", "Party exists."); return;
-                    }
-                    db.Parties.Add(new Party { Name = name });
+                        Name = nameField.Text.ToString(),
+                        GstNumber = gstField.Text.ToString(),
+                        PhoneNumber = phoneField.Text.ToString(),
+                        Address = addressView.Text.ToString()
+                    });
                     db.SaveChanges();
                 }
-                LoadParties();
-                partyNameField.SetFocus();
+                Program.ShowMessage("Success", "New Party added.");
+                RefreshList();
             }
-            catch (Exception e) { Program.ShowError("Error", e.Message); }
+            catch (Exception e) { Program.ShowError("DB Error", e.Message); }
         }
 
-        private void OnUpdate()
+        private void OnUpdateSelected()
         {
-            if (selectedParty == null) return;
-            string name = partyNameField.Text?.ToString() ?? "";
-            if (string.IsNullOrWhiteSpace(name)) return;
+            if (selectedParty == null) { Program.ShowError("Error", "Select a party first."); return; }
+
             try
             {
                 using (var db = new AppDbContext())
                 {
                     var p = db.Parties.Find(selectedParty.PartyId);
-                    if (p != null) { p.Name = name; db.SaveChanges(); }
-                }
-                LoadParties();
-            }
-            catch (Exception e) { Program.ShowError("Error", e.Message); }
-        }
-
-        private void OnDelete()
-        {
-            if (selectedParty == null) return;
-            if (!Program.ShowQuery("Confirm", $"Delete {selectedParty.Name}?")) return;
-            try
-            {
-                using (var db = new AppDbContext())
-                {
-                    if (db.PurchaseSlips.Any(s => s.PartyId == selectedParty.PartyId))
+                    if (p != null)
                     {
-                        Program.ShowError("Error", "Party has slips."); return;
+                        p.Name = nameField.Text.ToString();
+                        p.GstNumber = gstField.Text.ToString();
+                        p.PhoneNumber = phoneField.Text.ToString();
+                        p.Address = addressView.Text.ToString();
+                        db.SaveChanges();
+                        Program.ShowMessage("Success", "Party updated.");
+                        RefreshList();
                     }
-                    var p = db.Parties.Find(selectedParty.PartyId);
-                    if (p != null) { db.Parties.Remove(p); db.SaveChanges(); }
                 }
-                LoadParties();
             }
-            catch (Exception e) { Program.ShowError("Error", e.Message); }
+            catch (Exception e) { Program.ShowError("DB Error", e.Message); }
+        }
+
+        private void OnDeleteSelected()
+        {
+            if (selectedParty == null) return;
+            if (!Program.ShowQuery("Confirm Delete", $"Are you sure you want to delete {selectedParty.Name}?")) return;
+
+            try
+            {
+                using (var db = new AppDbContext())
+                {
+                    var p = db.Parties.Find(selectedParty.PartyId);
+                    if (p != null)
+                    {
+                        db.Parties.Remove(p);
+                        db.SaveChanges();
+                        Program.ShowMessage("Success", "Party deleted.");
+                        RefreshList();
+                    }
+                }
+            }
+            catch (Exception e) { Program.ShowError("DB Error", e.Message); }
         }
     }
 }

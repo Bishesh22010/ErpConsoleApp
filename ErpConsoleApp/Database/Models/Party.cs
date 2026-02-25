@@ -3,17 +3,20 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ErpConsoleApp.Database.Models
 {
-    /// <summary>
-    /// Defines the structure of the Party (supplier/vendor)
-    /// </summary>
     public class Party
     {
         [Key]
         public int PartyId { get; set; }
+
         [Required]
         public string Name { get; set; }
 
-        // Navigation property: One Party can have many PurchaseSlips
-        public virtual ICollection<PurchaseSlip> PurchaseSlips { get; set; }
+        // New Fields
+        public string GstNumber { get; set; } // Nullable/Optional by default
+        public string PhoneNumber { get; set; }
+        public string Address { get; set; }
+
+        // Navigation property for related slips
+        public virtual ICollection<PurchaseSlip> PurchaseSlips { get; set; } = new List<PurchaseSlip>();
     }
 }
