@@ -9,6 +9,9 @@ namespace ErpConsoleApp.Database.Models
         public int PartyId { get; set; }
 
         [Required]
+        public string PartyCode { get; set; } // New: Manually entered Party ID
+
+        [Required]
         public string Name { get; set; }
 
         // New Fields

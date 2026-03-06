@@ -7,227 +7,271 @@ using ErpConsoleApp.Database.Models;
 
 namespace ErpConsoleApp.UI
 {
-    /// <summary>
-    /// Window for creating a new Purchase Slip.
-    /// Updated to include Item Dropdown logic.
-    /// </summary>
     public class PurchaseWindow : Window
     {
+        // UI Elements - Left Pane
         private TextField dateField;
-        private ComboBox partyCombo;
-
-        // --- CHANGED: Use ComboBox for Items ---
-        private ComboBox itemCombo;
-
+        private ComboBox partyIdCombo;
+        private TextView partyDetailsView;
+        private ListView availableItemsList;
+        private TextField itemCodeField;
         private TextField amountField;
 
-        private List<string> partyNames = new List<string>();
-        private List<string> itemNames = new List<string>();
+        // UI Elements - Right Pane
+        private ListView cartListView;
+        private Label totalAmountLabel;
+
+        // Data State
+        private List<Party> allParties = new List<Party>();
+        private List<Item> allItems = new List<Item>();
+        private Party selectedParty = null;
+        private List<CartItem> cart = new List<CartItem>();
+
+        // Helper class for the right-side cart
+        private class CartItem
+        {
+            public Item Item { get; set; }
+            public decimal Amount { get; set; }
+            public override string ToString() => $"[{Item.ItemCode}] {Item.ItemName,-15} | ₹{Amount,10:N2}";
+        }
 
         public PurchaseWindow() : base("New Purchase Slip (Press ESC to go back)")
         {
             ColorScheme = Colors.WindowScheme;
-
-            // --- FULL SCREEN SETTINGS ---
-            X = 0;
-            Y = 0;
-            Width = Dim.Fill();
-            Height = Dim.Fill();
+            X = 0; Y = 0; Width = Dim.Fill(); Height = Dim.Fill();
             Modal = true;
 
-            // --- ESCAPE KEY HANDLER ---
             KeyDown += (e) => {
-                if (e.KeyEvent.Key == Key.Esc)
-                {
-                    Application.RequestStop();
-                    e.Handled = true;
-                }
+                if (e.KeyEvent.Key == Key.Esc) { Application.RequestStop(); e.Handled = true; }
             };
 
             LoadDataFromDb();
+            SetupUI();
+        }
 
-            // --- CENTERED CONTAINER ---
-            var container = new View()
+        private void SetupUI()
+        {
+            // --- LEFT PANE: Data Entry ---
+            var leftPane = new FrameView("Party & Item Selection")
             {
-                X = Pos.Center(),
-                Y = Pos.Center(),
-                Width = 60,
-                Height = 20
+                X = 0,
+                Y = 0,
+                Width = Dim.Percent(50),
+                Height = Dim.Fill()
             };
 
-            int y = 0;
+            leftPane.Add(new Label("Date:") { X = 1, Y = 1 });
+            dateField = new TextField(DateTime.Now.ToString("yyyy-MM-dd")) { X = 15, Y = 1, Width = 20, ColorScheme = Colors.TextScheme };
+            leftPane.Add(dateField);
 
-            // --- Date ---
-            container.Add(new Label("Date:") { X = 0, Y = y });
-            dateField = new TextField(DateTime.Now.ToString("yyyy-MM-dd"))
+            leftPane.Add(new Label("Party ID:") { X = 1, Y = 3 });
+            partyIdCombo = new ComboBox() { X = 15, Y = 3, Width = 20, Height = 5, ColorScheme = Colors.TextScheme };
+            partyIdCombo.SetSource(allParties.Select(p => p.PartyCode).ToList());
+            partyIdCombo.SelectedItemChanged += OnPartySelected;
+            leftPane.Add(partyIdCombo);
+
+            partyDetailsView = new TextView()
             {
-                X = 15,
-                Y = y,
-                Width = 20,
+                X = 1,
+                Y = 5,
+                Width = Dim.Fill(1),
+                Height = 4,
+                ReadOnly = true,
+                ColorScheme = Colors.ResultScheme,
+                Text = "Select a Party ID to view details..."
+            };
+            leftPane.Add(partyDetailsView);
+
+            leftPane.Add(new Label("--- Available Items ---") { X = 1, Y = 10 });
+            availableItemsList = new ListView()
+            {
+                X = 1,
+                Y = 11,
+                Width = Dim.Fill(1),
+                Height = 6,
+                ColorScheme = Colors.TextScheme,
+                CanFocus = false // Makes it purely for display, skipping it in tab navigation
+            };
+            availableItemsList.SetSource(allItems.Select(i => $"[{i.ItemCode}] {i.ItemName}").ToList());
+
+            // Removed the SelectedItemChanged event so items are no longer clickable/selectable
+
+            leftPane.Add(availableItemsList);
+
+            leftPane.Add(new Label("Item Code:") { X = 1, Y = 18 });
+            itemCodeField = new TextField("") { X = 15, Y = 18, Width = 20, ColorScheme = Colors.TextScheme };
+            leftPane.Add(itemCodeField);
+
+            leftPane.Add(new Label("Amount:") { X = 1, Y = 20 });
+            amountField = new TextField("") { X = 15, Y = 20, Width = 20, ColorScheme = Colors.TextScheme };
+            leftPane.Add(amountField);
+
+            var btnAdd = new Button("_Add to Slip") { X = Pos.Center(), Y = 22, ColorScheme = Colors.ButtonScheme };
+            btnAdd.Clicked += OnAddToCart;
+            leftPane.Add(btnAdd);
+
+
+            // --- RIGHT PANE: Cart & Generation ---
+            var rightPane = new FrameView("Current Slip Items")
+            {
+                X = Pos.Right(leftPane),
+                Y = 0,
+                Width = Dim.Fill(),
+                Height = Dim.Fill()
+            };
+
+            cartListView = new ListView()
+            {
+                X = 0,
+                Y = 0,
+                Width = Dim.Fill(),
+                Height = Dim.Fill(4),
                 ColorScheme = Colors.TextScheme
             };
-            container.Add(dateField);
+            rightPane.Add(cartListView);
 
-            y += 2;
-
-            // --- Party Name (ComboBox) ---
-            container.Add(new Label("Party Name:") { X = 0, Y = y });
-            partyCombo = new ComboBox()
+            totalAmountLabel = new Label("Total Amount: ₹0.00")
             {
-                X = 15,
-                Y = y,
-                Width = 35,
-                Height = 5,
-                ColorScheme = Colors.TextScheme
+                X = 1,
+                Y = Pos.AnchorEnd(3),
+                ColorScheme = Colors.ResultScheme
             };
-            partyCombo.SetSource(partyNames);
-            container.Add(partyCombo);
+            rightPane.Add(totalAmountLabel);
 
-            y += 2;
+            var btnGenerate = new Button("_Generate Slip") { X = 1, Y = Pos.AnchorEnd(1), IsDefault = true, ColorScheme = Colors.ButtonScheme };
+            btnGenerate.Clicked += OnGenerateSlip;
 
-            // --- Item Name (ComboBox) ---
-            container.Add(new Label("Item Name:") { X = 0, Y = y });
-            itemCombo = new ComboBox()
-            {
-                X = 15,
-                Y = y,
-                Width = 35,
-                Height = 5,
-                ColorScheme = Colors.TextScheme
-            };
-            itemCombo.SetSource(itemNames);
-            container.Add(itemCombo);
+            var btnCancel = new Button("_Cancel") { X = Pos.Right(btnGenerate) + 2, Y = Pos.AnchorEnd(1), ColorScheme = Colors.ErrorScheme };
+            btnCancel.Clicked += () => Application.RequestStop();
 
-            y += 2;
+            rightPane.Add(btnGenerate, btnCancel);
 
-            // --- Amount ---
-            container.Add(new Label("Amount:") { X = 0, Y = y });
-            amountField = new TextField("")
-            {
-                X = 15,
-                Y = y,
-                Width = 20,
-                ColorScheme = Colors.TextScheme
-            };
-            container.Add(amountField);
-
-            y += 4;
-
-            // --- Buttons ---
-            var generateButton = new Button("_Generate Slip")
-            {
-                X = 5,
-                Y = y,
-                IsDefault = true,
-                ColorScheme = Colors.ButtonScheme
-            };
-            generateButton.Clicked += OnGenerateSlip;
-
-            var cancelButton = new Button("_Cancel")
-            {
-                X = 25,
-                Y = y,
-                ColorScheme = Colors.ButtonScheme
-            };
-            cancelButton.Clicked += () => Application.RequestStop();
-
-            container.Add(generateButton, cancelButton);
-            Add(container);
-
-            dateField.SetFocus();
+            Add(leftPane, rightPane);
+            partyIdCombo.SetFocus();
         }
 
         private void LoadDataFromDb()
         {
-            using (var db = new AppDbContext())
+            try
             {
-                try
+                using (var db = new AppDbContext())
                 {
-                    // Load Parties
-                    partyNames = db.Parties.OrderBy(p => p.Name).Select(p => p.Name).ToList();
+                    allParties = db.Parties.OrderBy(p => p.PartyCode).ToList();
+                    allItems = db.Items.OrderBy(i => i.ItemCode).ToList();
+                }
+            }
+            catch (Exception e) { Program.ShowError("DB Error", e.Message); }
+        }
 
-                    // --- NEW: Load Items ---
-                    itemNames = db.Items.OrderBy(i => i.ItemName).Select(i => i.ItemName).ToList();
-                }
-                catch (Exception e)
-                {
-                    Program.ShowError("DB Error", $"Could not load data:\n{e.Message}");
-                }
+        private void OnPartySelected(ListViewItemEventArgs args)
+        {
+            string selectedCode = args.Value?.ToString() ?? "";
+            selectedParty = allParties.FirstOrDefault(p => p.PartyCode == selectedCode);
+
+            if (selectedParty != null)
+            {
+                partyDetailsView.Text = $"Name:  {selectedParty.Name}\nPhone: {selectedParty.PhoneNumber ?? "N/A"}\nGST:   {selectedParty.GstNumber ?? "N/A"}";
+            }
+            else
+            {
+                partyDetailsView.Text = "Party not found.";
+            }
+        }
+
+        private void OnAddToCart()
+        {
+            string code = itemCodeField.Text?.ToString().Trim() ?? "";
+            string amtStr = amountField.Text?.ToString().Trim() ?? "";
+
+            if (selectedParty == null)
+            {
+                Program.ShowError("Validation", "Please select a valid Party ID first."); return;
+            }
+
+            Item item = allItems.FirstOrDefault(i => i.ItemCode.Equals(code, StringComparison.OrdinalIgnoreCase));
+            if (item == null)
+            {
+                Program.ShowError("Validation", $"Item with Code '{code}' not found."); return;
+            }
+
+            if (!decimal.TryParse(amtStr, out decimal amount) || amount <= 0)
+            {
+                Program.ShowError("Validation", "Please enter a valid amount."); return;
+            }
+
+            // Add to Cart
+            cart.Add(new CartItem { Item = item, Amount = amount });
+            RefreshCartView();
+
+            // Clear inputs for next item
+            itemCodeField.Text = "";
+            amountField.Text = "";
+            itemCodeField.SetFocus();
+        }
+
+        private void RefreshCartView()
+        {
+            if (cart.Count == 0)
+            {
+                cartListView.SetSource(new List<string> { "Slip is empty." });
+                totalAmountLabel.Text = "Total Amount: ₹0.00";
+            }
+            else
+            {
+                cartListView.SetSource(cart.Select(c => c.ToString()).ToList());
+                decimal total = cart.Sum(c => c.Amount);
+                totalAmountLabel.Text = $"Total Amount: ₹{total:N2}";
             }
         }
 
         private void OnGenerateSlip()
         {
-            // --- 1. Validation ---
-            string partyName = partyCombo.Text?.ToString() ?? "";
-            string itemName = itemCombo.Text?.ToString() ?? ""; // Get from ComboBox
-            string amountText = amountField.Text?.ToString() ?? "";
-
-            if (string.IsNullOrWhiteSpace(partyName) ||
-                string.IsNullOrWhiteSpace(itemName) ||
-                !decimal.TryParse(amountText, out decimal amount) ||
-                amount <= 0)
+            if (cart.Count == 0)
             {
-                Program.ShowError("Validation Error", "Party, Item, and a valid Amount are required.");
-                return;
+                Program.ShowError("Error", "No items added to the slip."); return;
             }
 
             if (!DateTime.TryParse(dateField.Text.ToString(), out DateTime slipDate))
             {
-                Program.ShowError("Validation Error", "Please enter a valid date (YYYY-MM-DD).");
+                Program.ShowError("Validation", "Invalid date format."); return;
+            }
+
+            if (!Program.ShowQuery("Confirm Generation", $"Generate slip for {selectedParty.Name} totaling ₹{cart.Sum(c => c.Amount):N2}?"))
+            {
                 return;
             }
 
-            // --- 2. Database Logic ---
             try
             {
                 using (var db = new AppDbContext())
                 {
-                    // Check Party
-                    Party party = db.Parties.FirstOrDefault(p => p.Name == partyName);
-                    if (party == null)
+                    // Create an individual PurchaseSlip record for each item to keep DB schema intact
+                    foreach (var cartItem in cart)
                     {
-                        Program.ShowError("Error", "Party not found. Please add it first.");
-                        return;
+                        db.PurchaseSlips.Add(new PurchaseSlip
+                        {
+                            SlipDate = slipDate,
+                            ItemName = cartItem.Item.ItemName,
+                            Amount = cartItem.Amount,
+                            PartyId = selectedParty.PartyId,
+                            IsPaid = false,
+                            PaidAmount = 0
+                        });
                     }
-
-                    // Check Item (Optional strict check, or just allow text)
-                    // If you want to force the user to pick a valid item from DB:
-                    /*
-                    if (!db.Items.Any(i => i.ItemName == itemName)) {
-                        Program.ShowError("Error", "Item not found. Please add it in Item Manager.");
-                        return;
-                    }
-                    */
-
-                    // Create the purchase slip
-                    var slip = new PurchaseSlip
-                    {
-                        SlipDate = slipDate,
-                        ItemName = itemName,
-                        Amount = amount,
-                        PartyId = party.PartyId,
-                        IsPaid = false,
-                        PaidAmount = 0
-                    };
-
-                    db.PurchaseSlips.Add(slip);
                     db.SaveChanges();
                 }
 
-                Program.ShowMessage("Success", $"Purchase Slip generated for {partyName}\nItem: {itemName}\nAmount: ₹{amount:N2}\n\nPress Enter to continue...");
+                Program.ShowMessage("Success", "Purchase Slip generated successfully!");
 
-                // Clear form for next entry
-                itemCombo.Text = "";
+                // Reset UI
+                cart.Clear();
+                RefreshCartView();
+                itemCodeField.Text = "";
                 amountField.Text = "";
-                itemCombo.SetFocus();
+                partyIdCombo.SetFocus();
+
             }
-            catch (Exception e)
-            {
-                string error = $"Could not save slip:\n{e.Message}\n\n" +
-                               "Tip: Is 'erp.db' locked by another program?";
-                Program.ShowError("Database Error", error);
-            }
+            catch (Exception e) { Program.ShowError("Database Error", e.Message); }
         }
     }
 }

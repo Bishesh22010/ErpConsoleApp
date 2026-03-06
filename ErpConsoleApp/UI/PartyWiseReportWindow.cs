@@ -14,12 +14,13 @@ namespace ErpConsoleApp.UI
     public class PartyWiseReportWindow : Window
     {
         private ComboBox partyCombo;
+        private Label partyNameLabel;
         private DateField monthField;
         private ListView reportList;
         private ListView recentFilesList;
         private Label summaryLabel;
 
-        private List<string> partyNames = new List<string>();
+        private List<Party> allParties = new List<Party>();
         private List<PurchaseSlip> currentSlips = new List<PurchaseSlip>();
         private List<FileInfo> recentFiles = new List<FileInfo>();
 
@@ -42,35 +43,36 @@ namespace ErpConsoleApp.UI
                 Height = 6
             };
 
-            filterFrame.Add(new Label("Select Party:") { X = 2, Y = 1 });
-            partyCombo = new ComboBox()
-            {
-                X = 16,
-                Y = 1,
-                Width = 30,
-                Height = 4,
-                ColorScheme = Colors.TextScheme
+            filterFrame.Add(new Label("Party ID:") { X = 2, Y = 1 });
+            partyCombo = new ComboBox() { X = 15, Y = 1, Width = 20, Height = 4, ColorScheme = Colors.TextScheme };
+            partyCombo.SelectedItemChanged += (e) => {
+                var p = allParties.FirstOrDefault(x => x.PartyCode == (e.Value?.ToString() ?? ""));
+                partyNameLabel.Text = p != null ? $"Name: {p.Name}" : "Name: Not Found";
             };
+            filterFrame.Add(partyCombo);
 
-            filterFrame.Add(new Label("Select Month:") { X = 50, Y = 1 });
+            partyNameLabel = new Label("Name: ") { X = 38, Y = 1, ColorScheme = Colors.ResultScheme };
+            filterFrame.Add(partyNameLabel);
+
+            filterFrame.Add(new Label("Select Month:") { X = 2, Y = 3 });
             monthField = new DateField(DateTime.Now)
             {
-                X = 64,
-                Y = 1,
+                X = 15,
+                Y = 3,
                 Width = 12,
                 ColorScheme = Colors.TextScheme
             };
+            filterFrame.Add(monthField);
 
             var btnLoad = new Button("_Load Report")
             {
-                X = 80,
-                Y = 1,
+                X = 38,
+                Y = 3,
                 IsDefault = true,
                 ColorScheme = Colors.ButtonScheme
             };
             btnLoad.Clicked += LoadReport;
-
-            filterFrame.Add(partyCombo, monthField, btnLoad);
+            filterFrame.Add(btnLoad);
 
             // --- Middle Container ---
             var middleContainer = new View()
@@ -81,7 +83,6 @@ namespace ErpConsoleApp.UI
                 Height = Dim.Fill(4)
             };
 
-            // Left: Report Data
             var listFrame = new FrameView("Report Preview")
             {
                 X = 0,
@@ -99,8 +100,7 @@ namespace ErpConsoleApp.UI
             };
             listFrame.Add(reportList);
 
-            // Right: Recent Files
-            var recentFrame = new FrameView("Recent Exports")
+            var recentFrame = new FrameView("Recent Party Exports")
             {
                 X = Pos.Right(listFrame),
                 Y = 0,
@@ -158,8 +158,8 @@ namespace ErpConsoleApp.UI
             {
                 using (var db = new AppDbContext())
                 {
-                    partyNames = db.Parties.OrderBy(p => p.Name).Select(p => p.Name).ToList();
-                    partyCombo.SetSource(partyNames);
+                    allParties = db.Parties.OrderBy(p => p.PartyCode).ToList();
+                    partyCombo.SetSource(allParties.Select(p => p.PartyCode).ToList());
                 }
             }
             catch (Exception e) { Program.ShowError("DB Error", e.Message); }
@@ -167,12 +167,13 @@ namespace ErpConsoleApp.UI
 
         private void LoadReport()
         {
-            string partyName = partyCombo.Text?.ToString() ?? "";
+            string partyCode = partyCombo.Text?.ToString().Trim() ?? "";
             DateTime date = monthField.Date;
 
-            if (string.IsNullOrWhiteSpace(partyName))
+            var party = allParties.FirstOrDefault(p => p.PartyCode == partyCode);
+            if (party == null)
             {
-                Program.ShowError("Error", "Please select a party.");
+                Program.ShowError("Error", "Please select a valid Party ID.");
                 return;
             }
 
@@ -182,23 +183,23 @@ namespace ErpConsoleApp.UI
                 {
                     currentSlips = db.PurchaseSlips
                         .Include(s => s.Party)
-                        .Where(s => s.Party.Name == partyName &&
+                        .Where(s => s.PartyId == party.PartyId &&
                                     s.SlipDate.Month == date.Month &&
                                     s.SlipDate.Year == date.Year)
                         .OrderBy(s => s.SlipDate)
                         .ToList();
 
                     var displayList = currentSlips.Select(s =>
-                        string.Format("{0:yyyy-MM-dd} | {1,-15} | {2,10:N2} | {3}",
+                        string.Format("{0:yyyy-MM-dd} | {1,-15} | ₹{2,10:N2} | {3}",
                             s.SlipDate, s.ItemName, s.Amount,
-                            s.IsPaid ? "CLEARED" : $"PARTIAL ({s.Amount - s.PaidAmount:N0})")
+                            s.IsPaid ? "CLEARED" : $"PARTIAL (₹{s.Amount - s.PaidAmount:N2} left)")
                     ).ToList();
 
                     if (displayList.Count == 0) displayList.Add("No records found for this party/month.");
                     reportList.SetSource(displayList);
 
                     decimal total = currentSlips.Sum(s => s.Amount);
-                    summaryLabel.Text = $"Total: {total:C} | Count: {currentSlips.Count}";
+                    summaryLabel.Text = $"Total: ₹{total:N2} | Count: {currentSlips.Count}";
                 }
             }
             catch (Exception e) { Program.ShowError("DB Error", e.Message); }
@@ -206,9 +207,9 @@ namespace ErpConsoleApp.UI
 
         private void ExportData(string format)
         {
-            if (currentSlips.Count == 0) { Program.ShowError("Error", "No data."); return; }
+            if (currentSlips.Count == 0) { Program.ShowError("Error", "No data to export."); return; }
 
-            string partyName = partyCombo.Text.ToString().Replace(" ", "");
+            string partyName = allParties.FirstOrDefault(p => p.PartyCode == partyCombo.Text.ToString())?.Name.Replace(" ", "_") ?? "Unknown";
             string fileName = $"PartyReport_{partyName}_{monthField.Date:yyyy_MM}_{DateTime.Now:HHmmss}.{format}";
             string fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
 
@@ -217,24 +218,24 @@ namespace ErpConsoleApp.UI
                 StringBuilder sb = new StringBuilder();
                 if (format == "csv")
                 {
-                    sb.AppendLine("Date,Item,Amount,Paid,Status");
+                    sb.AppendLine("Date,Item,Amount,Status");
                     foreach (var s in currentSlips)
-                        sb.AppendLine($"{s.SlipDate:yyyy-MM-dd},{s.ItemName},{s.Amount},{s.PaidAmount},{(s.IsPaid ? "CLEARED" : "PENDING")}");
+                        sb.AppendLine($"{s.SlipDate:yyyy-MM-dd},{s.ItemName},{s.Amount},{(s.IsPaid ? "CLEARED" : "PENDING")}");
                 }
                 else
                 {
                     sb.AppendLine($"--- PARTY REPORT: {partyCombo.Text} ({monthField.Date:MM/yyyy}) ---");
-                    sb.AppendLine(new string('-', 60));
-                    sb.AppendLine($"{"Date",-12} | {"Item",-20} | {"Amount",10} | {"Status",-10}");
-                    sb.AppendLine(new string('-', 60));
+                    sb.AppendLine(new string('-', 65));
+                    sb.AppendLine($"{"Date",-12} | {"Item Name",-20} | {"Amount",10} | {"Status",-10}");
+                    sb.AppendLine(new string('-', 65));
                     foreach (var s in currentSlips)
                         sb.AppendLine($"{s.SlipDate:yyyy-MM-dd,-12} | {s.ItemName,-20} | {s.Amount,10:N2} | {(s.IsPaid ? "CLEARED" : "PENDING"),-10}");
-                    sb.AppendLine(new string('-', 60));
-                    sb.AppendLine($"TOTAL: {currentSlips.Sum(s => s.Amount):C}");
+                    sb.AppendLine(new string('-', 65));
+                    sb.AppendLine($"TOTAL AMOUNT: ₹{currentSlips.Sum(s => s.Amount):N2}");
                 }
 
                 File.WriteAllText(fullPath, sb.ToString());
-                Program.ShowMessage("Success", $"Saved: {fileName}");
+                Program.ShowMessage("Export Successful", $"Saved as: {fileName}");
                 LoadRecentFiles();
             }
             catch (Exception e) { Program.ShowError("Export Failed", e.Message); }
@@ -245,10 +246,10 @@ namespace ErpConsoleApp.UI
             try
             {
                 var d = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
-                recentFiles = d.GetFiles("PartyReport_*.*") // Only show party reports here
+                recentFiles = d.GetFiles("PartyReport_*.*")
                                .OrderByDescending(f => f.CreationTime).Take(5).ToList();
                 var names = recentFiles.Select(f => f.Name).ToList();
-                if (names.Count == 0) names.Add("No recent reports.");
+                if (names.Count == 0) names.Add("No recent party reports.");
                 recentFilesList.SetSource(names);
             }
             catch { /* Ignore file errors */ }

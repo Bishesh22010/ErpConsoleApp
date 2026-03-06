@@ -10,10 +10,11 @@ namespace ErpConsoleApp.UI
     public class ManagePartiesWindow : Window
     {
         private ListView partyListView;
+        private TextField partyCodeField;
         private TextField nameField;
         private TextField gstField;
         private TextField phoneField;
-        private TextView addressView; // Use TextView for multi-line address
+        private TextView addressView;
         private List<Party> parties = new List<Party>();
         private Party selectedParty = null;
 
@@ -55,40 +56,44 @@ namespace ErpConsoleApp.UI
                 Height = Dim.Fill(2)
             };
 
+            // Party ID (Code)
+            rightPane.Add(new Label("Party ID:") { X = 2, Y = 1 });
+            partyCodeField = new TextField("") { X = 18, Y = 1, Width = Dim.Fill(2), ColorScheme = Colors.TextScheme };
+
             // Party Name
-            rightPane.Add(new Label("Party Name:") { X = 2, Y = 1 });
-            nameField = new TextField("") { X = 18, Y = 1, Width = Dim.Fill(2), ColorScheme = Colors.TextScheme };
+            rightPane.Add(new Label("Party Name:") { X = 2, Y = 3 });
+            nameField = new TextField("") { X = 18, Y = 3, Width = Dim.Fill(2), ColorScheme = Colors.TextScheme };
 
             // GST Number
-            rightPane.Add(new Label("GST Number:") { X = 2, Y = 3 });
-            gstField = new TextField("") { X = 18, Y = 3, Width = Dim.Fill(2), ColorScheme = Colors.TextScheme };
+            rightPane.Add(new Label("GST Number:") { X = 2, Y = 5 });
+            gstField = new TextField("") { X = 18, Y = 5, Width = Dim.Fill(2), ColorScheme = Colors.TextScheme };
 
             // Phone Number
-            rightPane.Add(new Label("Phone No:") { X = 2, Y = 5 });
-            phoneField = new TextField("") { X = 18, Y = 5, Width = Dim.Fill(2), ColorScheme = Colors.TextScheme };
+            rightPane.Add(new Label("Phone No:") { X = 2, Y = 7 });
+            phoneField = new TextField("") { X = 18, Y = 7, Width = Dim.Fill(2), ColorScheme = Colors.TextScheme };
 
             // Address
-            rightPane.Add(new Label("Address:") { X = 2, Y = 7 });
+            rightPane.Add(new Label("Address:") { X = 2, Y = 9 });
             addressView = new TextView()
             {
                 X = 18,
-                Y = 7,
+                Y = 9,
                 Width = Dim.Fill(2),
                 Height = 3,
                 ColorScheme = Colors.TextScheme,
                 ReadOnly = false
             };
 
-            // Buttons
-            var btnSave = new Button("_Save as New") { X = Pos.Center(), Y = 12, ColorScheme = Colors.ButtonScheme };
-            var btnUpdate = new Button("_Update Selected") { X = Pos.Center(), Y = 14, ColorScheme = Colors.ButtonScheme };
+            // Buttons - Adjusted Y spacing to ensure they don't overlap fields
+            var btnSave = new Button("_Save as New") { X = Pos.Center() - 15, Y = 14, ColorScheme = Colors.ButtonScheme };
+            var btnUpdate = new Button("_Update Selected") { X = Pos.Center() + 5, Y = 14, ColorScheme = Colors.ButtonScheme };
             var btnDelete = new Button("_Delete Selected") { X = Pos.Center(), Y = 16, ColorScheme = Colors.ErrorScheme };
 
             btnSave.Clicked += OnSaveNew;
             btnUpdate.Clicked += OnUpdateSelected;
             btnDelete.Clicked += OnDeleteSelected;
 
-            rightPane.Add(nameField, gstField, phoneField, addressView, btnSave, btnUpdate, btnDelete);
+            rightPane.Add(partyCodeField, nameField, gstField, phoneField, addressView, btnSave, btnUpdate, btnDelete);
 
             // Back Button at bottom
             var btnBack = new Button("_Back")
@@ -109,8 +114,8 @@ namespace ErpConsoleApp.UI
             {
                 using (var db = new AppDbContext())
                 {
-                    parties = db.Parties.OrderBy(p => p.Name).ToList();
-                    partyListView.SetSource(parties.Select(p => p.Name).ToList());
+                    parties = db.Parties.OrderBy(p => p.PartyCode).ToList();
+                    partyListView.SetSource(parties.Select(p => $"[{p.PartyCode}] {p.Name}").ToList());
                 }
                 ClearFields();
             }
@@ -120,6 +125,7 @@ namespace ErpConsoleApp.UI
         private void ClearFields()
         {
             selectedParty = null;
+            partyCodeField.Text = "";
             nameField.Text = "";
             gstField.Text = "";
             phoneField.Text = "";
@@ -130,6 +136,7 @@ namespace ErpConsoleApp.UI
         {
             if (args.Item < 0 || args.Item >= parties.Count) return;
             selectedParty = parties[args.Item];
+            partyCodeField.Text = selectedParty.PartyCode ?? "";
             nameField.Text = selectedParty.Name;
             gstField.Text = selectedParty.GstNumber ?? "";
             phoneField.Text = selectedParty.PhoneNumber ?? "";
@@ -138,18 +145,27 @@ namespace ErpConsoleApp.UI
 
         private void OnSaveNew()
         {
-            if (string.IsNullOrWhiteSpace(nameField.Text.ToString()))
+            string code = partyCodeField.Text?.ToString().Trim() ?? "";
+            string name = nameField.Text?.ToString().Trim() ?? "";
+
+            if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(name))
             {
-                Program.ShowError("Validation", "Name is required."); return;
+                Program.ShowError("Validation", "Party ID and Name are required."); return;
             }
 
             try
             {
                 using (var db = new AppDbContext())
                 {
+                    if (db.Parties.Any(p => p.PartyCode.ToLower() == code.ToLower()))
+                    {
+                        Program.ShowError("Error", $"Party ID '{code}' is already assigned."); return;
+                    }
+
                     db.Parties.Add(new Party
                     {
-                        Name = nameField.Text.ToString(),
+                        PartyCode = code,
+                        Name = name,
                         GstNumber = gstField.Text.ToString(),
                         PhoneNumber = phoneField.Text.ToString(),
                         Address = addressView.Text.ToString()
@@ -166,6 +182,14 @@ namespace ErpConsoleApp.UI
         {
             if (selectedParty == null) { Program.ShowError("Error", "Select a party first."); return; }
 
+            string code = partyCodeField.Text?.ToString().Trim() ?? "";
+            string name = nameField.Text?.ToString().Trim() ?? "";
+
+            if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(name))
+            {
+                Program.ShowError("Validation", "Party ID and Name are required."); return;
+            }
+
             try
             {
                 using (var db = new AppDbContext())
@@ -173,7 +197,13 @@ namespace ErpConsoleApp.UI
                     var p = db.Parties.Find(selectedParty.PartyId);
                     if (p != null)
                     {
-                        p.Name = nameField.Text.ToString();
+                        if (db.Parties.Any(x => x.PartyCode.ToLower() == code.ToLower() && x.PartyId != p.PartyId))
+                        {
+                            Program.ShowError("Error", "Party ID already in use."); return;
+                        }
+
+                        p.PartyCode = code;
+                        p.Name = name;
                         p.GstNumber = gstField.Text.ToString();
                         p.PhoneNumber = phoneField.Text.ToString();
                         p.Address = addressView.Text.ToString();

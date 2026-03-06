@@ -14,12 +14,13 @@ namespace ErpConsoleApp.UI
     public class ItemWiseReportWindow : Window
     {
         private ComboBox itemCombo;
+        private Label itemNameLabel;
         private DateField monthField;
         private ListView reportList;
         private ListView recentFilesList;
         private Label summaryLabel;
 
-        private List<string> itemNames = new List<string>();
+        private List<Item> allItems = new List<Item>();
         private List<PurchaseSlip> currentSlips = new List<PurchaseSlip>();
         private List<FileInfo> recentFiles = new List<FileInfo>();
 
@@ -42,35 +43,36 @@ namespace ErpConsoleApp.UI
                 Height = 6
             };
 
-            filterFrame.Add(new Label("Select Item:") { X = 2, Y = 1 });
-            itemCombo = new ComboBox()
-            {
-                X = 16,
-                Y = 1,
-                Width = 30,
-                Height = 4,
-                ColorScheme = Colors.TextScheme
+            filterFrame.Add(new Label("Item Code:") { X = 2, Y = 1 });
+            itemCombo = new ComboBox() { X = 15, Y = 1, Width = 20, Height = 4, ColorScheme = Colors.TextScheme };
+            itemCombo.SelectedItemChanged += (e) => {
+                var i = allItems.FirstOrDefault(x => x.ItemCode == (e.Value?.ToString() ?? ""));
+                itemNameLabel.Text = i != null ? $"Name: {i.ItemName}" : "Name: Not Found";
             };
+            filterFrame.Add(itemCombo);
 
-            filterFrame.Add(new Label("Select Month:") { X = 50, Y = 1 });
+            itemNameLabel = new Label("Name: ") { X = 38, Y = 1, ColorScheme = Colors.ResultScheme };
+            filterFrame.Add(itemNameLabel);
+
+            filterFrame.Add(new Label("Select Month:") { X = 2, Y = 3 });
             monthField = new DateField(DateTime.Now)
             {
-                X = 64,
-                Y = 1,
+                X = 15,
+                Y = 3,
                 Width = 12,
                 ColorScheme = Colors.TextScheme
             };
+            filterFrame.Add(monthField);
 
             var btnLoad = new Button("_Load Report")
             {
-                X = 80,
-                Y = 1,
+                X = 38,
+                Y = 3,
                 IsDefault = true,
                 ColorScheme = Colors.ButtonScheme
             };
             btnLoad.Clicked += LoadReport;
-
-            filterFrame.Add(itemCombo, monthField, btnLoad);
+            filterFrame.Add(btnLoad);
 
             // --- Middle Container ---
             var middleContainer = new View()
@@ -81,7 +83,6 @@ namespace ErpConsoleApp.UI
                 Height = Dim.Fill(4)
             };
 
-            // Left: Report Data
             var listFrame = new FrameView("Report Preview")
             {
                 X = 0,
@@ -99,7 +100,6 @@ namespace ErpConsoleApp.UI
             };
             listFrame.Add(reportList);
 
-            // Right: Recent Files
             var recentFrame = new FrameView("Recent Item Exports")
             {
                 X = Pos.Right(listFrame),
@@ -158,8 +158,8 @@ namespace ErpConsoleApp.UI
             {
                 using (var db = new AppDbContext())
                 {
-                    itemNames = db.Items.OrderBy(i => i.ItemName).Select(i => i.ItemName).ToList();
-                    itemCombo.SetSource(itemNames);
+                    allItems = db.Items.OrderBy(i => i.ItemCode).ToList();
+                    itemCombo.SetSource(allItems.Select(i => i.ItemCode).ToList());
                 }
             }
             catch (Exception e) { Program.ShowError("DB Error", e.Message); }
@@ -167,12 +167,13 @@ namespace ErpConsoleApp.UI
 
         private void LoadReport()
         {
-            string selectedItem = itemCombo.Text?.ToString().Trim() ?? "";
+            string itemCode = itemCombo.Text?.ToString().Trim() ?? "";
             DateTime date = monthField.Date;
 
-            if (string.IsNullOrWhiteSpace(selectedItem))
+            var item = allItems.FirstOrDefault(i => i.ItemCode == itemCode);
+            if (item == null)
             {
-                Program.ShowError("Error", "Please select an item.");
+                Program.ShowError("Error", "Please select a valid Item Code.");
                 return;
             }
 
@@ -182,16 +183,16 @@ namespace ErpConsoleApp.UI
                 {
                     currentSlips = db.PurchaseSlips
                         .Include(s => s.Party)
-                        .Where(s => s.ItemName.ToLower() == selectedItem.ToLower() &&
+                        .Where(s => s.ItemName == item.ItemName &&
                                     s.SlipDate.Month == date.Month &&
                                     s.SlipDate.Year == date.Year)
                         .OrderBy(s => s.SlipDate)
                         .ToList();
 
                     var displayList = currentSlips.Select(s =>
-                        string.Format("{0:yyyy-MM-dd} | {1,-15} | {2,10:N2} | {3}",
+                        string.Format("{0:yyyy-MM-dd} | {1,-15} | ₹{2,10:N2} | {3}",
                             s.SlipDate, s.Party.Name, s.Amount,
-                            s.IsPaid ? "CLEARED" : $"PARTIAL ({s.Amount - s.PaidAmount:N0} left)")
+                            s.IsPaid ? "CLEARED" : $"PARTIAL (₹{s.Amount - s.PaidAmount:N2} left)")
                     ).ToList();
 
                     if (displayList.Count == 0) displayList.Add("No records found for this item/month.");
@@ -208,7 +209,7 @@ namespace ErpConsoleApp.UI
         {
             if (currentSlips.Count == 0) { Program.ShowError("Error", "No data to export."); return; }
 
-            string itemName = itemCombo.Text.ToString().Replace(" ", "_");
+            string itemName = allItems.FirstOrDefault(i => i.ItemCode == itemCombo.Text.ToString())?.ItemName.Replace(" ", "_") ?? "Unknown";
             string fileName = $"ItemReport_{itemName}_{monthField.Date:yyyy_MM}_{DateTime.Now:HHmmss}.{format}";
             string fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
 
@@ -217,9 +218,9 @@ namespace ErpConsoleApp.UI
                 StringBuilder sb = new StringBuilder();
                 if (format == "csv")
                 {
-                    sb.AppendLine("Date,Party,Amount,Paid,Status");
+                    sb.AppendLine("Date,Party,Amount,Status");
                     foreach (var s in currentSlips)
-                        sb.AppendLine($"{s.SlipDate:yyyy-MM-dd},{s.Party.Name},{s.Amount},{s.PaidAmount},{(s.IsPaid ? "CLEARED" : "PENDING")}");
+                        sb.AppendLine($"{s.SlipDate:yyyy-MM-dd},{s.Party.Name},{s.Amount},{(s.IsPaid ? "CLEARED" : "PENDING")}");
                 }
                 else
                 {
