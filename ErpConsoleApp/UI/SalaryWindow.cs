@@ -36,7 +36,7 @@ namespace ErpConsoleApp.UI
                 X = 0,
                 Y = 0,
                 Width = Dim.Percent(30),
-                Height = Dim.Fill()
+                Height = Dim.Fill(2) // Leaves 2 rows at the bottom for Back button and Shortcuts
             };
             employeeList = new ListView() { X = 0, Y = 0, Width = Dim.Fill(), Height = Dim.Fill(), ColorScheme = Colors.TextScheme };
             employeeList.SelectedItemChanged += OnEmployeeSelected;
@@ -48,7 +48,7 @@ namespace ErpConsoleApp.UI
                 X = Pos.Right(leftFrame),
                 Y = 0,
                 Width = Dim.Fill(),
-                Height = Dim.Fill()
+                Height = Dim.Fill(2) // Leaves 2 rows at the bottom for Back button and Shortcuts
             };
 
             int y = 1;
@@ -115,10 +115,23 @@ namespace ErpConsoleApp.UI
             rightFrame.Add(btnCalculate, btnHistory);
 
             // Close Button
-            var btnClose = new Button("_Back") { X = Pos.Center(), Y = Pos.AnchorEnd(1), ColorScheme = Colors.ButtonScheme };
+            var btnClose = new Button("_Back")
+            {
+                X = Pos.Center(),
+                Y = Pos.AnchorEnd(2), // Moved up to AnchorEnd(2)
+                ColorScheme = Colors.ButtonScheme
+            };
             btnClose.Clicked += () => Application.RequestStop();
 
-            Add(leftFrame, rightFrame, btnClose);
+            // --- NEW: App-wide Shortcut Display Pattern ---
+            var shortcutsLabel = new Label("Shortcuts: [Alt+C] Calculate | [Alt+H] History | [Alt+B]/[ESC] Back | [Tab] Navigate")
+            {
+                X = Pos.Center(),
+                Y = Pos.AnchorEnd(1), // Placed at the very bottom
+                ColorScheme = Colors.ResultScheme
+            };
+
+            Add(leftFrame, rightFrame, btnClose, shortcutsLabel);
             LoadEmployees();
         }
 

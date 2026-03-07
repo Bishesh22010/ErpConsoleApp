@@ -40,16 +40,24 @@ namespace ErpConsoleApp.UI
             slipList = new ListView() { X = 0, Y = 0, Width = Dim.Fill(), Height = Dim.Fill(), ColorScheme = Colors.TextScheme };
             listFrame.Add(slipList);
 
-            var payButton = new Button("_Pay Selected Slip") { X = Pos.Center() - 35, Y = Pos.AnchorEnd(1), ColorScheme = Colors.ButtonScheme };
+            var payButton = new Button("_Pay Selected Slip") { X = Pos.Center() - 35, Y = Pos.AnchorEnd(2), ColorScheme = Colors.ButtonScheme };
             payButton.Clicked += OnPaySlip;
 
-            var masterClearButton = new Button("_Master Clear (All Pending)") { X = Pos.Center() - 10, Y = Pos.AnchorEnd(1), ColorScheme = Colors.ButtonScheme };
+            var masterClearButton = new Button("_Master Clear (All Pending)") { X = Pos.Center() - 10, Y = Pos.AnchorEnd(2), ColorScheme = Colors.ButtonScheme };
             masterClearButton.Clicked += OnMasterClear;
 
-            var closeButton = new Button("_Back") { X = Pos.Center() + 25, Y = Pos.AnchorEnd(1), IsDefault = true, ColorScheme = Colors.ButtonScheme };
+            var closeButton = new Button("_Back") { X = Pos.Center() + 25, Y = Pos.AnchorEnd(2), IsDefault = true, ColorScheme = Colors.ButtonScheme };
             closeButton.Clicked += () => Application.RequestStop();
 
-            Add(searchFrame, listFrame, payButton, masterClearButton, closeButton);
+            // --- NEW: App-wide Shortcut Display Pattern ---
+            var shortcutsLabel = new Label("Shortcuts: [Alt+P] Pay | [Alt+M] Master Clear | [Alt+B]/[ESC] Back | [Tab] Navigate")
+            {
+                X = Pos.Center(),
+                Y = Pos.AnchorEnd(1), // Placed at the very bottom
+                ColorScheme = Colors.ResultScheme
+            };
+
+            Add(searchFrame, listFrame, payButton, masterClearButton, closeButton, shortcutsLabel);
             LoadPartiesFromDb();
             partyCombo.SetFocus();
         }

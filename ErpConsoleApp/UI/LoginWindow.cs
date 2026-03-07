@@ -16,7 +16,8 @@ namespace ErpConsoleApp.UI
         public LoginWindow() : base("Welcome to ERP System")
         {
             ColorScheme = Colors.WindowScheme;
-            X = Pos.Center(); Y = Pos.Center(); Width = 40; Height = 12;
+            // Increased width to 55 to ensure the new shortcuts label fits perfectly
+            X = Pos.Center(); Y = Pos.Center(); Width = 55; Height = 12;
             Modal = true;
 
             // Check if this is the first run
@@ -63,7 +64,20 @@ namespace ErpConsoleApp.UI
             };
             quitButton.Clicked += () => Application.RequestStop();
 
-            Add(actionButton, quitButton);
+            // --- NEW: App-wide Shortcut Display Pattern ---
+            // Dynamic text based on mode
+            string shortcutsText = isSetupMode
+                ? "[Alt+S] Set | [Alt+Q] Quit | [Tab] Nav"
+                : "[Alt+L] Login | [Alt+Q]/[Ctrl+Q] Quit | [Tab] Nav";
+
+            var shortcutsLabel = new Label(shortcutsText)
+            {
+                X = Pos.Center(),
+                Y = Pos.AnchorEnd(1), // Placed at the very bottom
+                ColorScheme = Colors.ResultScheme
+            };
+
+            Add(actionButton, quitButton, shortcutsLabel);
             pinField.SetFocus();
         }
 

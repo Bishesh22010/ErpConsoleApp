@@ -50,19 +50,28 @@ namespace ErpConsoleApp.UI
             listFrame.Add(header, employeeList);
 
             // --- Bottom: Actions ---
-            var btnAdd = new Button("_Add Employee") { X = 2, Y = Pos.AnchorEnd(1), ColorScheme = Colors.ButtonScheme };
+            // Moved to AnchorEnd(2) to make room for shortcuts
+            var btnAdd = new Button("_Add Employee") { X = 2, Y = Pos.AnchorEnd(2), ColorScheme = Colors.ButtonScheme };
             btnAdd.Clicked += () => { Program.OpenModal(new AddEditEmployeeWindow()); LoadEmployees(); };
 
-            var btnUpdate = new Button("_Update Selected") { X = 20, Y = Pos.AnchorEnd(1), ColorScheme = Colors.ButtonScheme };
+            var btnUpdate = new Button("_Update Selected") { X = 20, Y = Pos.AnchorEnd(2), ColorScheme = Colors.ButtonScheme };
             btnUpdate.Clicked += OnUpdate;
 
-            var btnDelete = new Button("_Delete Selected") { X = 42, Y = Pos.AnchorEnd(1), ColorScheme = Colors.ErrorScheme };
+            var btnDelete = new Button("_Delete Selected") { X = 42, Y = Pos.AnchorEnd(2), ColorScheme = Colors.ErrorScheme };
             btnDelete.Clicked += OnDelete;
 
-            var btnBack = new Button("_Back") { X = Pos.AnchorEnd(10), Y = Pos.AnchorEnd(1), ColorScheme = Colors.ButtonScheme };
+            var btnBack = new Button("_Back") { X = Pos.AnchorEnd(10), Y = Pos.AnchorEnd(2), ColorScheme = Colors.ButtonScheme };
             btnBack.Clicked += () => Application.RequestStop();
 
-            Add(topFrame, listFrame, btnAdd, btnUpdate, btnDelete, btnBack);
+            // --- NEW: App-wide Shortcut Display Pattern ---
+            var shortcutsLabel = new Label("Shortcuts: [Alt+S] Search | [Alt+R] Reset | [Alt+A] Add | [Alt+U] Update | [Alt+D] Delete | [Alt+B]/[ESC] Back")
+            {
+                X = Pos.Center(),
+                Y = Pos.AnchorEnd(1), // Placed at the very bottom
+                ColorScheme = Colors.ResultScheme
+            };
+
+            Add(topFrame, listFrame, btnAdd, btnUpdate, btnDelete, btnBack, shortcutsLabel);
 
             LoadEmployees();
         }

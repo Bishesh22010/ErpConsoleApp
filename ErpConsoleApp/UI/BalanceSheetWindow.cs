@@ -45,7 +45,7 @@ namespace ErpConsoleApp.UI
                 X = 2,
                 Y = 3,
                 Width = Dim.Percent(48),
-                Height = Dim.Fill(6)
+                Height = Dim.Fill(7) // Increased margin to 7 to make room for shortcuts
             };
             partyPayableList = new ListView() { X = 0, Y = 0, Width = Dim.Fill(), Height = Dim.Fill(), ColorScheme = Colors.TextScheme };
             leftFrame.Add(partyPayableList);
@@ -56,7 +56,7 @@ namespace ErpConsoleApp.UI
                 X = Pos.Percent(52),
                 Y = 3,
                 Width = Dim.Fill(2),
-                Height = Dim.Fill(6)
+                Height = Dim.Fill(7) // Increased margin to 7 to make room for shortcuts
             };
             employeeReceivableList = new ListView() { X = 0, Y = 0, Width = Dim.Fill(), Height = Dim.Fill(), ColorScheme = Colors.TextScheme };
             rightFrame.Add(employeeReceivableList);
@@ -65,7 +65,7 @@ namespace ErpConsoleApp.UI
             var summaryFrame = new FrameView("Financial Totals")
             {
                 X = 2,
-                Y = Pos.AnchorEnd(6),
+                Y = Pos.AnchorEnd(7), // Moved up to AnchorEnd(7)
                 Width = Dim.Fill(2),
                 Height = 5
             };
@@ -80,12 +80,20 @@ namespace ErpConsoleApp.UI
             var btnBack = new Button("_Back")
             {
                 X = Pos.Center(),
-                Y = Pos.AnchorEnd(1),
+                Y = Pos.AnchorEnd(2), // Moved up to AnchorEnd(2)
                 ColorScheme = Colors.ButtonScheme
             };
             btnBack.Clicked += () => Application.RequestStop();
 
-            Add(leftFrame, rightFrame, summaryFrame, btnBack);
+            // --- NEW: App-wide Shortcut Display Pattern ---
+            var shortcutsLabel = new Label("Shortcuts: [Alt+B]/[ESC] Back | [Tab] Navigate")
+            {
+                X = Pos.Center(),
+                Y = Pos.AnchorEnd(1), // Placed at the very bottom
+                ColorScheme = Colors.ResultScheme
+            };
+
+            Add(leftFrame, rightFrame, summaryFrame, btnBack, shortcutsLabel);
 
             LoadBalanceSheet();
         }

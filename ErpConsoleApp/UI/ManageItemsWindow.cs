@@ -31,7 +31,7 @@ namespace ErpConsoleApp.UI
                 X = 0,
                 Y = 0,
                 Width = Dim.Percent(35),
-                Height = Dim.Fill(1)
+                Height = Dim.Fill(2) // Leaves 2 rows at the bottom for Back button and Shortcuts
             };
 
             itemList = new ListView()
@@ -51,7 +51,7 @@ namespace ErpConsoleApp.UI
                 X = Pos.Right(listFrame),
                 Y = 0,
                 Width = Dim.Fill(),
-                Height = Dim.Fill(1)
+                Height = Dim.Fill(2) // Leaves 2 rows at the bottom for Back button and Shortcuts
             };
 
             var container = new View()
@@ -80,15 +80,24 @@ namespace ErpConsoleApp.UI
             container.Add(itemCodeField, itemNameField, saveButton, updateButton, deleteButton);
             editFrame.Add(container);
 
+            // Back Button at bottom (Moved up to AnchorEnd(2) to make room for shortcuts)
             var closeButton = new Button("_Back")
             {
                 X = Pos.Center(),
-                Y = Pos.AnchorEnd(1),
+                Y = Pos.AnchorEnd(2),
                 ColorScheme = Colors.ButtonScheme
             };
             closeButton.Clicked += () => Application.RequestStop();
 
-            Add(listFrame, editFrame, closeButton);
+            // --- NEW: App-wide Shortcut Display Pattern ---
+            var shortcutsLabel = new Label("Shortcuts: [Alt+S] Save | [Alt+U] Update | [Alt+D] Delete | [Alt+B]/[ESC] Back | [Tab] Navigate")
+            {
+                X = Pos.Center(),
+                Y = Pos.AnchorEnd(1), // Placed at the very bottom
+                ColorScheme = Colors.ResultScheme
+            };
+
+            Add(listFrame, editFrame, closeButton, shortcutsLabel);
 
             LoadItems();
             itemCodeField.SetFocus();

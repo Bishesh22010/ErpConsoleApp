@@ -28,7 +28,7 @@ namespace ErpConsoleApp.UI
                 X = 0,
                 Y = 0,
                 Width = Dim.Percent(40),
-                Height = Dim.Fill()
+                Height = Dim.Fill(2) // Leaves 2 rows at the bottom for Back button and Shortcuts
             };
             employeeList = new ListView() { X = 0, Y = 0, Width = Dim.Fill(), Height = Dim.Fill(), ColorScheme = Colors.TextScheme };
             employeeList.SelectedItemChanged += OnEmployeeSelected;
@@ -40,7 +40,7 @@ namespace ErpConsoleApp.UI
                 X = Pos.Right(leftFrame),
                 Y = 0,
                 Width = Dim.Fill(),
-                Height = Dim.Fill(2)
+                Height = Dim.Fill(2) // Leaves 2 rows at the bottom for Back button and Shortcuts
             };
 
             // Header Row
@@ -51,19 +51,27 @@ namespace ErpConsoleApp.UI
             rightFrame.Add(header, voucherList);
 
             // --- Bottom: Actions ---
-            var btnGenerate = new Button("_Generate Voucher") { X = Pos.Percent(50), Y = Pos.AnchorEnd(1), ColorScheme = Colors.ButtonScheme };
+            var btnGenerate = new Button("_Generate Voucher") { X = Pos.Percent(50), Y = Pos.AnchorEnd(2), ColorScheme = Colors.ButtonScheme };
             btnGenerate.Clicked += OnGenerate;
 
-            var btnUpdate = new Button("_Update Voucher") { X = Pos.Right(btnGenerate) + 2, Y = Pos.AnchorEnd(1), ColorScheme = Colors.ButtonScheme };
+            var btnUpdate = new Button("_Update Voucher") { X = Pos.Right(btnGenerate) + 2, Y = Pos.AnchorEnd(2), ColorScheme = Colors.ButtonScheme };
             btnUpdate.Clicked += OnUpdate;
 
-            var btnDelete = new Button("_Delete Voucher") { X = Pos.Right(btnUpdate) + 2, Y = Pos.AnchorEnd(1), ColorScheme = Colors.ErrorScheme };
+            var btnDelete = new Button("_Delete Voucher") { X = Pos.Right(btnUpdate) + 2, Y = Pos.AnchorEnd(2), ColorScheme = Colors.ErrorScheme };
             btnDelete.Clicked += OnDelete;
 
-            var btnBack = new Button("_Back") { X = 2, Y = Pos.AnchorEnd(1), ColorScheme = Colors.ButtonScheme };
+            var btnBack = new Button("_Back") { X = 2, Y = Pos.AnchorEnd(2), ColorScheme = Colors.ButtonScheme };
             btnBack.Clicked += () => Application.RequestStop();
 
-            Add(leftFrame, rightFrame, btnBack, btnGenerate, btnUpdate, btnDelete);
+            // --- NEW: App-wide Shortcut Display Pattern ---
+            var shortcutsLabel = new Label("Shortcuts: [Alt+G] Generate | [Alt+U] Update | [Alt+D] Delete | [Alt+B]/[ESC] Back | [Tab] Navigate")
+            {
+                X = Pos.Center(),
+                Y = Pos.AnchorEnd(1), // Placed at the very bottom
+                ColorScheme = Colors.ResultScheme
+            };
+
+            Add(leftFrame, rightFrame, btnBack, btnGenerate, btnUpdate, btnDelete, shortcutsLabel);
 
             LoadEmployees();
         }
@@ -145,7 +153,8 @@ namespace ErpConsoleApp.UI
             if (voucherList.SelectedItem < 0 || voucherList.SelectedItem >= employeeVouchers.Count) return;
             var voucher = employeeVouchers[voucherList.SelectedItem];
 
-            if (Program.ShowQuery("Confirm Delete", $"Delete voucher for {voucher.Amount:C}?"))
+            // Fixed currency formatting here
+            if (Program.ShowQuery("Confirm Delete", $"Delete voucher for ₹{voucher.Amount:N2}?"))
             {
                 try
                 {

@@ -66,7 +66,7 @@ namespace ErpConsoleApp.UI
                 X = 0,
                 Y = 5,
                 Width = Dim.Fill(),
-                Height = Dim.Fill(4) // Leave room for footer
+                Height = Dim.Fill(5) // Increased to 5 to leave room for taller footer
             };
 
             // --- Middle Left: Report Preview (70%) ---
@@ -115,12 +115,12 @@ namespace ErpConsoleApp.UI
             var footerFrame = new FrameView("Actions")
             {
                 X = 0,
-                Y = Pos.AnchorEnd(4),
+                Y = Pos.AnchorEnd(5), // Increased height for Shortcuts
                 Width = Dim.Fill(),
-                Height = 4
+                Height = 5
             };
 
-            summaryLabel = new Label("Total: 0.00 | Count: 0")
+            summaryLabel = new Label("Total: ₹0.00 | Count: 0")
             {
                 X = 2,
                 Y = 0,
@@ -159,7 +159,15 @@ namespace ErpConsoleApp.UI
             };
             btnClose.Clicked += () => Application.RequestStop();
 
-            footerFrame.Add(summaryLabel, btnExportCsv, btnExportTxt, btnOpenRecent, btnClose);
+            // --- NEW: App-wide Shortcut Display Pattern ---
+            var shortcutsLabel = new Label("Shortcuts: [Alt+L] Load | [Alt+E] Excel | [Alt+T] Text | [Alt+R] Open Recent | [Alt+B]/[ESC] Back")
+            {
+                X = Pos.Center(),
+                Y = 2, // Fixed safely beneath the buttons
+                ColorScheme = Colors.ResultScheme
+            };
+
+            footerFrame.Add(summaryLabel, btnExportCsv, btnExportTxt, btnOpenRecent, btnClose, shortcutsLabel);
 
             Add(filterFrame, middleContainer, footerFrame);
 
@@ -184,7 +192,7 @@ namespace ErpConsoleApp.UI
                         .ToList();
 
                     var displayList = currentSlips.Select(s =>
-                        string.Format("{0:yyyy-MM-dd} | {1,-15} | {2,-10} | {3,10:N2} | {4}",
+                        string.Format("{0:yyyy-MM-dd} | {1,-15} | {2,-10} | ₹{3,10:N2} | {4}",
                             s.SlipDate,
                             s.Party.Name,
                             s.ItemName,
@@ -196,7 +204,8 @@ namespace ErpConsoleApp.UI
                     reportList.SetSource(displayList);
 
                     decimal total = currentSlips.Sum(s => s.Amount);
-                    summaryLabel.Text = $"Total: {total:C} | Records: {currentSlips.Count}";
+                    // FIXED: Changed from {total:C} to explicit Rupee formatting
+                    summaryLabel.Text = $"Total: ₹{total:N2} | Records: {currentSlips.Count}";
                 }
             }
             catch (Exception e)
@@ -284,17 +293,18 @@ namespace ErpConsoleApp.UI
                 else // Text format
                 {
                     sb.AppendLine($"--- MONTHLY REPORT: {monthField.Date:MMMM yyyy} ---");
-                    sb.AppendLine(new string('-', 80));
+                    sb.AppendLine(new string('-', 85));
                     sb.AppendLine($"{"Date",-12} | {"Party",-20} | {"Item",-20} | {"Amount",10} | {"Status",-10}");
-                    sb.AppendLine(new string('-', 80));
+                    sb.AppendLine(new string('-', 85));
 
                     foreach (var s in currentSlips)
                     {
                         sb.AppendLine($"{s.SlipDate:yyyy-MM-dd,-12} | {s.Party.Name,-20} | {s.ItemName,-20} | {s.Amount,10:N2} | {(s.IsPaid ? "CLEARED" : "PENDING"),-10}");
                     }
 
-                    sb.AppendLine(new string('-', 80));
-                    sb.AppendLine($"TOTAL AMOUNT: {currentSlips.Sum(s => s.Amount):C}");
+                    sb.AppendLine(new string('-', 85));
+                    // FIXED: Changed from :C to explicit Rupee formatting
+                    sb.AppendLine($"TOTAL AMOUNT: ₹{currentSlips.Sum(s => s.Amount):N2}");
                 }
 
                 File.WriteAllText(fullPath, sb.ToString());

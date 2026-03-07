@@ -14,7 +14,7 @@ namespace ErpConsoleApp.UI
         private ComboBox partyIdCombo;
         private TextView partyDetailsView;
         private ListView availableItemsList;
-        private TextField itemCodeField;
+        private ComboBox itemCodeCombo; // Changed to ComboBox for autocomplete search
         private TextField amountField;
 
         // UI Elements - Right Pane
@@ -90,17 +90,15 @@ namespace ErpConsoleApp.UI
                 Width = Dim.Fill(1),
                 Height = 6,
                 ColorScheme = Colors.TextScheme,
-                CanFocus = false // Makes it purely for display, skipping it in tab navigation
+                CanFocus = false
             };
             availableItemsList.SetSource(allItems.Select(i => $"[{i.ItemCode}] {i.ItemName}").ToList());
-
-            // Removed the SelectedItemChanged event so items are no longer clickable/selectable
-
             leftPane.Add(availableItemsList);
 
             leftPane.Add(new Label("Item Code:") { X = 1, Y = 18 });
-            itemCodeField = new TextField("") { X = 15, Y = 18, Width = 20, ColorScheme = Colors.TextScheme };
-            leftPane.Add(itemCodeField);
+            itemCodeCombo = new ComboBox() { X = 15, Y = 18, Width = 20, Height = 4, ColorScheme = Colors.TextScheme };
+            itemCodeCombo.SetSource(allItems.Select(i => i.ItemCode).ToList()); // Load Item Codes
+            leftPane.Add(itemCodeCombo);
 
             leftPane.Add(new Label("Amount:") { X = 1, Y = 20 });
             amountField = new TextField("") { X = 15, Y = 20, Width = 20, ColorScheme = Colors.TextScheme };
@@ -133,18 +131,26 @@ namespace ErpConsoleApp.UI
             totalAmountLabel = new Label("Total Amount: ₹0.00")
             {
                 X = 1,
-                Y = Pos.AnchorEnd(3),
+                Y = Pos.AnchorEnd(4), // Moved up to make room
                 ColorScheme = Colors.ResultScheme
             };
             rightPane.Add(totalAmountLabel);
 
-            var btnGenerate = new Button("_Generate Slip") { X = 1, Y = Pos.AnchorEnd(1), IsDefault = true, ColorScheme = Colors.ButtonScheme };
+            var btnGenerate = new Button("_Generate Slip") { X = 1, Y = Pos.AnchorEnd(2), IsDefault = true, ColorScheme = Colors.ButtonScheme };
             btnGenerate.Clicked += OnGenerateSlip;
 
-            var btnCancel = new Button("_Cancel") { X = Pos.Right(btnGenerate) + 2, Y = Pos.AnchorEnd(1), ColorScheme = Colors.ErrorScheme };
+            var btnCancel = new Button("_Cancel") { X = Pos.Right(btnGenerate) + 2, Y = Pos.AnchorEnd(2), ColorScheme = Colors.ErrorScheme };
             btnCancel.Clicked += () => Application.RequestStop();
 
-            rightPane.Add(btnGenerate, btnCancel);
+            // --- NEW: App-wide Shortcut Display Pattern ---
+            var shortcutsLabel = new Label("Shortcuts: [Alt+A] Add | [Alt+G] Generate | [Alt+C]/[ESC] Cancel | [Tab] Navigate")
+            {
+                X = Pos.Center(),
+                Y = Pos.AnchorEnd(1), // Placed at the very bottom
+                ColorScheme = Colors.ResultScheme
+            };
+
+            rightPane.Add(btnGenerate, btnCancel, shortcutsLabel);
 
             Add(leftPane, rightPane);
             partyIdCombo.SetFocus();
@@ -180,7 +186,7 @@ namespace ErpConsoleApp.UI
 
         private void OnAddToCart()
         {
-            string code = itemCodeField.Text?.ToString().Trim() ?? "";
+            string code = itemCodeCombo.Text?.ToString().Trim() ?? "";
             string amtStr = amountField.Text?.ToString().Trim() ?? "";
 
             if (selectedParty == null)
@@ -204,9 +210,9 @@ namespace ErpConsoleApp.UI
             RefreshCartView();
 
             // Clear inputs for next item
-            itemCodeField.Text = "";
+            itemCodeCombo.Text = "";
             amountField.Text = "";
-            itemCodeField.SetFocus();
+            itemCodeCombo.SetFocus();
         }
 
         private void RefreshCartView()
@@ -245,7 +251,6 @@ namespace ErpConsoleApp.UI
             {
                 using (var db = new AppDbContext())
                 {
-                    // Create an individual PurchaseSlip record for each item to keep DB schema intact
                     foreach (var cartItem in cart)
                     {
                         db.PurchaseSlips.Add(new PurchaseSlip
@@ -263,10 +268,9 @@ namespace ErpConsoleApp.UI
 
                 Program.ShowMessage("Success", "Purchase Slip generated successfully!");
 
-                // Reset UI
                 cart.Clear();
                 RefreshCartView();
-                itemCodeField.Text = "";
+                itemCodeCombo.Text = "";
                 amountField.Text = "";
                 partyIdCombo.SetFocus();
 

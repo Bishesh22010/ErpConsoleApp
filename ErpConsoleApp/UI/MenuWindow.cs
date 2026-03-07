@@ -33,7 +33,7 @@ namespace ErpConsoleApp.UI
             "Salary",
             "Voucher",
             "Reports",
-            "Settings" // Settings is in the list, but handled specially
+            
         };
 
         public MenuWindow() : base("Main Menu")
@@ -181,20 +181,7 @@ namespace ErpConsoleApp.UI
                 // we can decide what to do. Since Settings is now a main module, 
                 // clicking it here could just switch the main module selection, 
                 // or open the modal wrapper if you prefer.
-                else if (selectedOption == "Settings") 
-                {
-                    // Option A: Switch the main left menu to "Settings"
-                    // moduleList.SelectedItem = 2; // Assuming Settings is at index 2
-                    
-                    // Option B: Just show the view right here (simpler)
-                    rightPane.RemoveAll();
-                    rightPane.Title = "System Settings";
-                    rightPane.Add(new SettingsView());
-                }
-                else
-                {
-                    Program.ShowMessage("Not Implemented", $"The action '{selectedOption}' is not yet implemented.");
-                }
+                
             }
             catch (Exception ex)
             {

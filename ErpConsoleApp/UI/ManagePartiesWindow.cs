@@ -34,7 +34,7 @@ namespace ErpConsoleApp.UI
                 X = 0,
                 Y = 0,
                 Width = 30,
-                Height = Dim.Fill(2)
+                Height = Dim.Fill(2) // Leaves 2 rows at the bottom for Back button and Shortcuts
             };
             partyListView = new ListView()
             {
@@ -53,7 +53,7 @@ namespace ErpConsoleApp.UI
                 X = 30,
                 Y = 0,
                 Width = Dim.Fill(),
-                Height = Dim.Fill(2)
+                Height = Dim.Fill(2) // Leaves 2 rows at the bottom for Back button and Shortcuts
             };
 
             // Party ID (Code)
@@ -95,16 +95,24 @@ namespace ErpConsoleApp.UI
 
             rightPane.Add(partyCodeField, nameField, gstField, phoneField, addressView, btnSave, btnUpdate, btnDelete);
 
-            // Back Button at bottom
+            // Back Button at bottom (Moved up to AnchorEnd(2) to make room for shortcuts)
             var btnBack = new Button("_Back")
             {
                 X = Pos.Center(),
-                Y = Pos.AnchorEnd(1),
+                Y = Pos.AnchorEnd(2),
                 ColorScheme = Colors.ButtonScheme
             };
             btnBack.Clicked += () => Application.RequestStop();
 
-            Add(leftPane, rightPane, btnBack);
+            // --- NEW: App-wide Shortcut Display Pattern ---
+            var shortcutsLabel = new Label("Shortcuts: [Alt+S] Save | [Alt+U] Update | [Alt+D] Delete | [Alt+B]/[ESC] Back | [Tab] Navigate")
+            {
+                X = Pos.Center(),
+                Y = Pos.AnchorEnd(1), // Placed at the very bottom
+                ColorScheme = Colors.ResultScheme
+            };
+
+            Add(leftPane, rightPane, btnBack, shortcutsLabel);
             RefreshList();
         }
 

@@ -80,7 +80,7 @@ namespace ErpConsoleApp.UI
                 X = 0,
                 Y = 6,
                 Width = Dim.Fill(),
-                Height = Dim.Fill(4)
+                Height = Dim.Fill(5) // Increased to 5 to leave room for taller footer
             };
 
             var listFrame = new FrameView("Report Preview")
@@ -124,9 +124,9 @@ namespace ErpConsoleApp.UI
             var footerFrame = new FrameView("Actions")
             {
                 X = 0,
-                Y = Pos.AnchorEnd(4),
+                Y = Pos.AnchorEnd(5), // Increased height for Shortcuts
                 Width = Dim.Fill(),
-                Height = 4
+                Height = 5
             };
 
             summaryLabel = new Label("Total: 0.00 | Count: 0") { X = 2, Y = 0 };
@@ -143,7 +143,15 @@ namespace ErpConsoleApp.UI
             var btnClose = new Button("_Back") { X = Pos.AnchorEnd(10), Y = 1, ColorScheme = Colors.ErrorScheme };
             btnClose.Clicked += () => Application.RequestStop();
 
-            footerFrame.Add(summaryLabel, btnExportCsv, btnExportTxt, btnOpenRecent, btnClose);
+            // --- NEW: App-wide Shortcut Display Pattern ---
+            var shortcutsLabel = new Label("Shortcuts: [Alt+L] Load | [Alt+E] Excel | [Alt+T] Text | [Alt+R] Open Recent | [Alt+B]/[ESC] Back")
+            {
+                X = Pos.Center(),
+                Y = 2, // Fixed safely beneath the buttons
+                ColorScheme = Colors.ResultScheme
+            };
+
+            footerFrame.Add(summaryLabel, btnExportCsv, btnExportTxt, btnOpenRecent, btnClose, shortcutsLabel);
 
             Add(filterFrame, middleContainer, footerFrame);
 

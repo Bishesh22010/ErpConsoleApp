@@ -40,7 +40,7 @@ namespace ErpConsoleApp.UI
                 X = 0,
                 Y = 0,
                 Width = Dim.Percent(65),
-                Height = Dim.Fill(1)
+                Height = Dim.Fill(2) // Leaves 2 rows at the bottom for Back buttons and Shortcuts
             };
 
             // --- Section 1: Standard Reports ---
@@ -91,9 +91,9 @@ namespace ErpConsoleApp.UI
             logModuleCombo.SelectedItem = 0;
             leftFrame.Add(logModuleCombo);*/
 
-           /* var btnLog = new Button("Download _Logs") { X = 50, Y = 16, ColorScheme = Colors.ButtonScheme };
-            btnLog.Clicked += DownloadLogs;
-            leftFrame.Add(btnLog);*/
+            /* var btnLog = new Button("Download _Logs") { X = 50, Y = 16, ColorScheme = Colors.ButtonScheme };
+             btnLog.Clicked += DownloadLogs;
+             leftFrame.Add(btnLog);*/
 
 
             // ========================================================
@@ -104,7 +104,7 @@ namespace ErpConsoleApp.UI
                 X = Pos.Right(leftFrame),
                 Y = 0,
                 Width = Dim.Fill(),
-                Height = Dim.Fill(1)
+                Height = Dim.Fill(2) // Leaves 2 rows at the bottom for Back buttons and Shortcuts
             };
 
             recentFilesList = new ListView()
@@ -119,15 +119,23 @@ namespace ErpConsoleApp.UI
             rightFrame.Add(recentFilesList);
 
             // --- Footer ---
-            var btnOpen = new Button("Open _Selected File")
-            { X = Pos.Center() - 20, Y = Pos.AnchorEnd(1), ColorScheme = Colors.ButtonScheme };
+            var btnOpen = new Button("_Open Selected File") // Changed to _Open to avoid hotkey conflict with Standard
+            { X = Pos.Center() - 20, Y = Pos.AnchorEnd(2), ColorScheme = Colors.ButtonScheme };
             btnOpen.Clicked += OpenRecentFile;
 
             var btnBack = new Button("_Back")
-            { X = Pos.Center() + 20, Y = Pos.AnchorEnd(1), ColorScheme = Colors.ErrorScheme };
+            { X = Pos.Center() + 20, Y = Pos.AnchorEnd(2), ColorScheme = Colors.ErrorScheme };
             btnBack.Clicked += () => Application.RequestStop();
 
-            Add(leftFrame, rightFrame, btnOpen, btnBack);
+            // --- NEW: App-wide Shortcut Display Pattern ---
+            var shortcutsLabel = new Label("Shortcuts: [Alt+S] Standard | [Alt+C] Custom | [Alt+O] Open | [Alt+B]/[ESC] Back | [Tab] Navigate")
+            {
+                X = Pos.Center(),
+                Y = Pos.AnchorEnd(1), // Placed at the very bottom
+                ColorScheme = Colors.ResultScheme
+            };
+
+            Add(leftFrame, rightFrame, btnOpen, btnBack, shortcutsLabel);
 
             LoadEmployees();
             LoadRecentFiles();
