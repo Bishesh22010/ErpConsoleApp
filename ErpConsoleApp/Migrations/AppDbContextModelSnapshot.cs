@@ -151,6 +151,10 @@ namespace ErpConsoleApp.Migrations
                     b.Property<bool>("IsPaid")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ItemCode")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("ItemName")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -161,7 +165,20 @@ namespace ErpConsoleApp.Migrations
                     b.Property<int>("PartyId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("QtyType")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("SlipDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SlipNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("UnitPrice")
                         .HasColumnType("TEXT");
 
                     b.HasKey("PurchaseSlipId");

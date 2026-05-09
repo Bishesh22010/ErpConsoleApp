@@ -204,7 +204,6 @@ namespace ErpConsoleApp.UI
                     reportList.SetSource(displayList);
 
                     decimal total = currentSlips.Sum(s => s.Amount);
-                    // FIXED: Changed from {total:C} to explicit Rupee formatting
                     summaryLabel.Text = $"Total: ₹{total:N2} | Records: {currentSlips.Count}";
                 }
             }
@@ -234,7 +233,7 @@ namespace ErpConsoleApp.UI
 
                 recentFilesList.SetSource(fileNames);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 Program.ShowError("File Error", "Could not load recent files.");
             }
@@ -276,7 +275,26 @@ namespace ErpConsoleApp.UI
             }
 
             string fileName = $"Report_{monthField.Date:yyyy_MM}_{DateTime.Now:HHmmss}.{format}";
-            string fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
+
+            // Allow user to select where to save the report
+            var saveDialog = new SaveDialog("Save Monthly Report", "Select location to save")
+            {
+                FilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName),
+                AllowedFileTypes = new[] { format }
+            };
+
+            Application.Run(saveDialog);
+
+            if (saveDialog.Canceled || saveDialog.FilePath == null)
+            {
+                return; // User canceled the save dialog
+            }
+
+            string fullPath = saveDialog.FilePath.ToString();
+            if (!fullPath.EndsWith($".{format}", StringComparison.OrdinalIgnoreCase))
+            {
+                fullPath += $".{format}";
+            }
 
             try
             {
@@ -303,12 +321,11 @@ namespace ErpConsoleApp.UI
                     }
 
                     sb.AppendLine(new string('-', 85));
-                    // FIXED: Changed from :C to explicit Rupee formatting
                     sb.AppendLine($"TOTAL AMOUNT: ₹{currentSlips.Sum(s => s.Amount):N2}");
                 }
 
                 File.WriteAllText(fullPath, sb.ToString());
-                Program.ShowMessage("Export Successful", $"File saved.");
+                Program.ShowMessage("Export Successful", $"File saved to:\n{fullPath}");
 
                 // Refresh the recent files list immediately
                 LoadRecentFiles();

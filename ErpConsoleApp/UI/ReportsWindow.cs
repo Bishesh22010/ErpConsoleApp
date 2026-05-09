@@ -79,23 +79,6 @@ namespace ErpConsoleApp.UI
             btnCustom.Clicked += () => GenerateReport(true);
             leftFrame.Add(btnCustom);
 
-            // --- Section 3: Logs ---
-            /*leftFrame.Add(new Label("--- System Logs ---") { X = 1, Y = 14, ColorScheme = Colors.MenuScheme });
-
-            leftFrame.Add(new Label("Module:") { X = 1, Y = 16 });
-            logModuleCombo = new ComboBox()
-            { X = 15, Y = 16, Width = 30, Height = 4, ColorScheme = Colors.TextScheme };
-            logModuleCombo.SetSource(new List<string> {
-                "All Modules", "Dashboard", "Manage Employee", "Salary", "Voucher", "Reports", "Settings", "Login"
-            });
-            logModuleCombo.SelectedItem = 0;
-            leftFrame.Add(logModuleCombo);*/
-
-            /* var btnLog = new Button("Download _Logs") { X = 50, Y = 16, ColorScheme = Colors.ButtonScheme };
-             btnLog.Clicked += DownloadLogs;
-             leftFrame.Add(btnLog);*/
-
-
             // ========================================================
             // RIGHT PANE: RECENT FILES (35%)
             // ========================================================
@@ -220,13 +203,34 @@ namespace ErpConsoleApp.UI
             var format = AskForFormat();
             if (string.IsNullOrEmpty(format)) return;
 
+            string reportTypeStr = reportType.Replace(" ", "");
+            string fileName = $"Report_{reportTypeStr}_{DateTime.Now:yyyyMMdd_HHmm}.{format.ToLower()}";
+
+            // Allow user to select where to save the report
+            var saveDialog = new SaveDialog("Save Salary/Employee Report", "Select location to save")
+            {
+                FilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName),
+                AllowedFileTypes = new[] { format.ToLower() }
+            };
+
+            Application.Run(saveDialog);
+
+            if (saveDialog.Canceled || saveDialog.FilePath == null)
+            {
+                return; // User canceled the save dialog
+            }
+
+            string fullPath = saveDialog.FilePath.ToString();
+            if (!fullPath.EndsWith($".{format.ToLower()}", StringComparison.OrdinalIgnoreCase))
+            {
+                fullPath += $".{format.ToLower()}";
+            }
+
             try
             {
                 using (var db = new AppDbContext())
                 {
                     StringBuilder sb = new StringBuilder();
-                    string fileName = $"Report_{reportType.Replace(" ", "")}_{DateTime.Now:yyyyMMdd_HHmm}.{format.ToLower()}";
-                    string fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
 
                     if (format == "CSV") sb.AppendLine(GetCsvHeader(reportType));
                     else sb.AppendLine(GetTextHeader(reportType));
@@ -272,48 +276,12 @@ namespace ErpConsoleApp.UI
                     if (!hasData) { Program.ShowError("Info", "No data found for this period."); return; }
 
                     File.WriteAllText(fullPath, sb.ToString());
-                    Program.ShowMessage("Success", $"Saved: {fileName}");
+                    Program.ShowMessage("Success", $"Saved to:\n{fullPath}");
                     LoadRecentFiles(); // Refresh list
                 }
             }
             catch (Exception e) { Program.ShowError("Error", e.Message); }
         }
-        /*
-        private void DownloadLogs()
-        {
-            string module = logModuleCombo.Text.ToString();
-            var format = AskForFormat();
-            if (string.IsNullOrEmpty(format)) return;
-
-            try
-            {
-                using (var db = new AppDbContext())
-                {
-                    var query = db.Logs.AsQueryable();
-                    if (module != "All Modules") query = query.Where(l => l.Module == module);
-
-                    var logs = query.OrderByDescending(l => l.Timestamp).ToList();
-                    if (logs.Count == 0) { Program.ShowError("Info", "No logs found."); return; }
-
-                    StringBuilder sb = new StringBuilder();
-                    string fileName = $"Logs_{module.Replace(" ", "")}_{DateTime.Now:yyyyMMdd_HHmm}.{format.ToLower()}";
-                    string fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
-
-                    if (format == "CSV") sb.AppendLine("Timestamp,Module,Action");
-
-                    foreach (var l in logs)
-                    {
-                        if (format == "CSV") sb.AppendLine($"{l.Timestamp},{l.Module},{l.Action}");
-                        else sb.AppendLine($"[{l.Timestamp}] [{l.Module}] {l.Action}");
-                    }
-
-                    File.WriteAllText(fullPath, sb.ToString());
-                    Program.ShowMessage("Success", $"Logs saved: {fileName}");
-                    LoadRecentFiles(); // Refresh list
-                }
-            }
-            catch (Exception e) { Program.ShowError("Error", e.Message); }
-        }*/
 
         private string AskForFormat()
         {

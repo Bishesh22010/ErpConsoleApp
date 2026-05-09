@@ -4,12 +4,21 @@ using System.ComponentModel.DataAnnotations;
 namespace ErpConsoleApp.Database.Models
 {
     /// <summary>
-    /// Defines the structure of a single Purchase Slip
+    /// Defines the structure of a single Purchase Slip Item
     /// </summary>
     public class PurchaseSlip
     {
         [Key]
         public int PurchaseSlipId { get; set; }
+
+        // --- NEW FIELDS TO MATCH HANDWRITTEN SLIP ---
+        public int SlipNumber { get; set; } // Auto-incrementing ID grouping items together
+        public string ItemCode { get; set; }
+        public decimal Quantity { get; set; }
+        public string QtyType { get; set; }
+        public decimal UnitPrice { get; set; }
+        // --------------------------------------------
+
         public DateTime SlipDate { get; set; }
         [Required]
         public string ItemName { get; set; }
@@ -18,7 +27,7 @@ namespace ErpConsoleApp.Database.Models
         // Tracks if the slip is fully cleared
         public bool IsPaid { get; set; } = false;
 
-        // --- NEW FIELD: Tracks partial payments ---
+        // Tracks partial payments
         public decimal PaidAmount { get; set; } = 0;
 
         // Foreign Key relationship

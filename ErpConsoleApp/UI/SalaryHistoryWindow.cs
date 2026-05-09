@@ -24,11 +24,12 @@ namespace ErpConsoleApp.UI
                 {
                     var history = db.Salaries
                         .Where(s => s.EmployeeId == employee.Id)
-                        .OrderByDescending(s => s.PaymentDate)
+                        .OrderByDescending(s => s.CalculationDate) // Ordered by the exact date processed
                         .ToList();
 
+                    // Display both the exact processing date, and the month it was meant for
                     var display = history.Select(s =>
-                        $"{s.PaymentDate:MMM yyyy} | Paid: {s.FinalSalary:F2} | Days: {s.PresentDays} | Borrow Paid: {s.BorrowRepayment:F2}"
+                        $"{s.CalculationDate:dd-MM-yyyy} (For {s.PaymentDate:MMM yyyy}) | Paid: {s.FinalSalary:F2} | Days: {s.PresentDays} | Borrow Paid: {s.BorrowRepayment:F2}"
                     ).ToList();
 
                     if (display.Count == 0) display.Add("No history found.");

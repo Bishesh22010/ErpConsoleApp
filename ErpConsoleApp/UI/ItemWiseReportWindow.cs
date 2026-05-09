@@ -219,7 +219,26 @@ namespace ErpConsoleApp.UI
 
             string itemName = allItems.FirstOrDefault(i => i.ItemCode == itemCombo.Text.ToString())?.ItemName.Replace(" ", "_") ?? "Unknown";
             string fileName = $"ItemReport_{itemName}_{monthField.Date:yyyy_MM}_{DateTime.Now:HHmmss}.{format}";
-            string fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
+
+            // Allow user to select where to save the report
+            var saveDialog = new SaveDialog("Save Item-Wise Report", "Select location to save")
+            {
+                FilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName),
+                AllowedFileTypes = new[] { format }
+            };
+
+            Application.Run(saveDialog);
+
+            if (saveDialog.Canceled || saveDialog.FilePath == null)
+            {
+                return; // User canceled the save dialog
+            }
+
+            string fullPath = saveDialog.FilePath.ToString();
+            if (!fullPath.EndsWith($".{format}", StringComparison.OrdinalIgnoreCase))
+            {
+                fullPath += $".{format}";
+            }
 
             try
             {
@@ -243,7 +262,7 @@ namespace ErpConsoleApp.UI
                 }
 
                 File.WriteAllText(fullPath, sb.ToString());
-                Program.ShowMessage("Export Successful", $"Saved as: {fileName}");
+                Program.ShowMessage("Export Successful", $"Saved to:\n{fullPath}");
                 LoadRecentFiles();
             }
             catch (Exception e) { Program.ShowError("Export Failed", e.Message); }
